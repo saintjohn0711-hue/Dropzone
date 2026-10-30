@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  /* Olive brand — not forest */
+  --dark: #1a241c;
+  --green: #2c3e2f;
+  --green-mid: #3d5242;
+  --olive: #4a634f;
+  --orange: #e85d04;
+  --orange-bright: #ff6b00;
+  --bg: #121a14;
+  --card: #1f2a22;
+  --text: #f5f5f5;
+  --muted: #a0a8a2;
+  --border: #2a352c;
+  --live: #3d7a4a;
+}
+
+@theme inline {
+  --color-dz-dark: var(--dark);
+  --color-dz-green: var(--green);
+  --color-dz-mid: var(--green-mid);
+  --color-dz-olive: var(--olive);
+  --color-dz-orange: var(--orange);
+  --color-dz-orange-bright: var(--orange-bright);
+  --color-dz-bg: var(--bg);
+  --color-dz-card: var(--card);
+  --color-dz-text: var(--text);
+  --color-dz-muted: var(--muted);
+  --color-dz-border: var(--border);
+  --color-dz-live: var(--live);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-syne);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 120% 80% at 10% -10%, rgba(232, 93, 4, 0.12), transparent 50%),
+    radial-gradient(ellipse 90% 60% at 100% 0%, rgba(61, 82, 66, 0.45), transparent 45%),
+    linear-gradient(165deg, #0e1510 0%, var(--bg) 40%, #152018 100%);
+  color: var(--text);
+  font-family: var(--font-dm-sans), ui-sans-serif, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.35s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}

@@ -17,20 +17,70 @@
 }
 
 @theme inline {
-  --color-dz-dark: var(--dark);
-  --color-dz-green: var(--green);
-  --color-dz-mid: var(--green-mid);
-  --color-dz-olive: var(--olive);
-  --color-dz-orange: var(--orange);
-  --color-dz-orange-bright: var(--orange-bright);
-  --color-dz-bg: var(--bg);
-  --color-dz-card: var(--card);
-  --color-dz-text: var(--text);
-  --color-dz-muted: var(--muted);
-  --color-dz-border: var(--border);
-  --color-dz-live: var(--live);
   --font-sans: var(--font-dm-sans);
   --font-display: var(--font-syne);
+}
+
+/* Plain utilities — Turbopack left @theme/@utility color tokens unemitted */
+.bg-dz-dark {
+  background-color: var(--dark);
+}
+.bg-dz-green {
+  background-color: var(--green);
+}
+.bg-dz-mid {
+  background-color: var(--green-mid);
+}
+.bg-dz-olive {
+  background-color: var(--olive);
+}
+.bg-dz-orange {
+  background-color: var(--orange);
+}
+.bg-dz-orange-bright {
+  background-color: var(--orange-bright);
+}
+.bg-dz-bg {
+  background-color: var(--bg);
+}
+.bg-dz-card {
+  background-color: var(--card);
+}
+.text-dz-text {
+  color: var(--text);
+}
+.text-dz-muted {
+  color: var(--muted);
+}
+.text-dz-orange {
+  color: var(--orange);
+}
+.text-dz-live {
+  color: var(--live);
+}
+.border-dz-border {
+  border-color: var(--border);
+}
+.border-dz-mid {
+  border-color: var(--green-mid);
+}
+.border-dz-orange {
+  border-color: var(--orange);
+}
+.font-display {
+  font-family: var(--font-syne), ui-sans-serif, sans-serif;
+}
+.hover\:bg-dz-orange-bright:hover {
+  background-color: var(--orange-bright);
+}
+.focus\:border-dz-orange:focus {
+  border-color: var(--orange);
+}
+.hover\:text-dz-orange:hover {
+  color: var(--orange);
+}
+.placeholder\:text-dz-muted::placeholder {
+  color: var(--muted);
 }
 
 * {

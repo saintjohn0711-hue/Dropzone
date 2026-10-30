@@ -8,8 +8,15 @@ export function AppShell({
   showNav?: boolean;
 }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col">
-      <div className={`flex-1 ${showNav ? "pb-24" : ""}`}>{children}</div>
+    <div className="phone">
+      <div className="status-bar">
+        <span>9:41</span>
+        <span>DropZone</span>
+        <span>📶 🔋</span>
+      </div>
+      <div className="screen-area" style={showNav ? undefined : { paddingBottom: 0 }}>
+        {children}
+      </div>
       {showNav ? <BottomNav /> : null}
     </div>
   );

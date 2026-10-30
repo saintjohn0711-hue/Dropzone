@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getVehicleOptions, type Product } from "@/data/products";
@@ -32,85 +31,69 @@ export function ProductDetail({ product }: { product: Product }) {
   }
 
   return (
-    <div className="animate-slide-in">
+    <div className="product-detail">
       <div
-        className="h-52 w-full bg-cover bg-center"
+        className="detail-img"
         style={{ backgroundImage: `url(${product.img})` }}
-        role="img"
-        aria-label={product.name}
       />
-      <div className="px-4 py-4">
-        <h1 className="font-display text-xl font-extrabold leading-tight">{product.name}</h1>
-        <p className="mt-1 text-sm text-dz-muted">{product.store}</p>
-        <span className="mt-2 inline-block rounded bg-dz-orange px-2 py-0.5 text-[10px] font-bold text-white">
-          Delivers in {product.eta}
-        </span>
-        <p className="mt-3 text-[15px]">{product.stock}</p>
-        <p className="mt-1 text-xs text-dz-muted">SKU {product.sku}</p>
-        <p className="mt-3 font-display text-[28px] font-extrabold text-dz-orange">
-          ${product.price.toFixed(2)}
-        </p>
-
-        <div className="mt-5">
-          <strong className="text-sm">Delivery Vehicle</strong>
-          <div className="mt-2 space-y-2">
-            {vehicles.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => setVehicleId(v.id)}
-                className={`flex w-full items-center justify-between rounded-xl bg-dz-card px-3 py-3 text-left border ${
-                  vehicleId === v.id ? "border-dz-orange" : "border-transparent"
-                }`}
-              >
-                <div>
-                  <div>
-                    {v.icon} {v.name}
-                  </div>
-                  <small className="text-dz-muted">{v.desc}</small>
-                </div>
-                <span className="font-bold text-dz-orange">+${v.fee.toFixed(2)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <strong className="text-sm">Speed</strong>
-          <div className="mt-2 space-y-2">
-            {rushOptions.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setRushId(r.id)}
-                className={`flex w-full items-center justify-between rounded-xl bg-dz-card px-3 py-3 text-left border ${
-                  rushId === r.id ? "border-dz-orange" : "border-transparent"
-                }`}
-              >
-                <div>
-                  <div>{r.label}</div>
-                  <small className="text-dz-muted">{r.detail}</small>
-                </div>
-                <span className="font-bold text-dz-orange">${r.fee.toFixed(2)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={addToDrop}
-          className="mt-6 w-full rounded-2xl bg-dz-orange py-4 text-base font-bold text-white transition hover:bg-dz-orange-bright"
-        >
-          Add to Drop
-        </button>
-        <Link
-          href="/pricing"
-          className="mt-3 block text-center text-sm text-dz-muted underline-offset-2 hover:text-dz-orange hover:underline"
-        >
-          See pricing guide
-        </Link>
+      <h2 style={{ marginBottom: 8 }}>{product.name}</h2>
+      <div style={{ color: "var(--muted)", marginBottom: 8 }}>{product.store}</div>
+      <span className="badge">Delivers in {product.eta}</span>
+      <div style={{ margin: "12px 0", fontSize: 15 }}>{product.stock}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)" }}>SKU {product.sku}</div>
+      <div
+        style={{
+          fontSize: 28,
+          fontWeight: 800,
+          color: "var(--orange)",
+          marginBottom: 12,
+          marginTop: 8,
+        }}
+      >
+        ${product.price.toFixed(2)}
       </div>
+
+      <div className="vehicle-options">
+        <strong style={{ fontSize: 14 }}>Delivery Vehicle</strong>
+        {vehicles.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            className={`option-row${vehicleId === v.id ? " selected" : ""}`}
+            onClick={() => setVehicleId(v.id)}
+          >
+            <div>
+              {v.icon} {v.name}
+              <br />
+              <small style={{ color: "var(--muted)" }}>{v.desc}</small>
+            </div>
+            <div className="price-tag">+${v.fee.toFixed(2)}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="rush-options">
+        <strong style={{ fontSize: 14 }}>Speed</strong>
+        {rushOptions.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            className={`option-row${rushId === r.id ? " selected" : ""}`}
+            onClick={() => setRushId(r.id)}
+          >
+            <div>
+              {r.label}
+              <br />
+              <small style={{ color: "var(--muted)" }}>{r.detail}</small>
+            </div>
+            <div className="price-tag">${r.fee.toFixed(2)}</div>
+          </button>
+        ))}
+      </div>
+
+      <button type="button" className="add-btn" onClick={addToDrop}>
+        Add to Drop
+      </button>
     </div>
   );
 }

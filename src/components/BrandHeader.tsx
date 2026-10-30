@@ -1,33 +1,50 @@
 import Link from "next/link";
 
 export function BrandHeader({
+  title,
   showBack,
   backHref = "/",
+  centerLogo,
 }: {
+  title?: string;
   showBack?: boolean;
   backHref?: string;
+  /** Home: logo image + tagline centered */
+  centerLogo?: boolean;
 }) {
-  return (
-    <header className="bg-dz-dark px-4 pb-4 pt-3">
-      <div className="flex items-start gap-3">
-        {showBack ? (
-          <Link
-            href={backHref}
-            className="mt-1 rounded-lg border border-dz-border px-2 py-1 text-sm text-dz-muted hover:text-dz-text"
-            aria-label="Back"
-          >
-            ←
-          </Link>
-        ) : null}
-        <div>
-          <Link href="/" className="font-display text-2xl font-extrabold tracking-tight">
-            Drop<span className="text-dz-orange">Zone</span>
-          </Link>
-          <p className="mt-0.5 text-[11px] text-dz-muted">
-            What you need. Where you need it.
-          </p>
+  if (centerLogo) {
+    return (
+      <div className="header" style={{ textAlign: "center", paddingBottom: 8 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/dropzone-logo.jpg"
+          alt="DropZone"
+          style={{ height: 72, margin: "0 auto 2px", display: "block" }}
+        />
+        <div className="tagline" style={{ fontSize: 11 }}>
+          What you need. Where you need it.
         </div>
       </div>
-    </header>
+    );
+  }
+
+  return (
+    <div
+      className="header"
+      style={showBack ? { display: "flex", alignItems: "center", gap: 10 } : undefined}
+    >
+      {showBack ? (
+        <Link href={backHref} className="back" aria-label="Back">
+          ←
+        </Link>
+      ) : null}
+      <div className="logo" style={showBack ? { fontSize: 22 } : undefined}>
+        {title ?? (
+          <>
+            Drop<span>Zone</span>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import { HomeBrowse } from "@/components/HomeBrowse";
 export default function HomePage() {
   return (
     <AppShell>
-      <BrandHeader />
+      <BrandHeader centerLogo />
       <HomeBrowse />
     </AppShell>
   );

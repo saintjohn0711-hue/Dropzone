@@ -42,81 +42,55 @@ export function CartView() {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
 
   if (!ready) {
-    return <p className="p-8 text-center text-dz-muted">Loading cart…</p>;
+    return <p className="empty-state">Loading cart…</p>;
   }
 
   return (
-    <div className="animate-fade-up">
+    <>
       {items.length === 0 ? (
-        <p className="px-6 py-16 text-center text-dz-muted">
-          Your cart is empty. Drop something in!
-        </p>
+        <p className="empty-state">Your cart is empty. Drop something in!</p>
       ) : (
-        <div className="space-y-2 py-2">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="mx-4 flex items-center gap-3 rounded-xl bg-dz-card p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <strong className="text-sm">{item.name}</strong>
-                <div className="text-[13px] text-dz-muted">{item.store}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => changeQty(item.id, -1)}
-                  className="h-7 w-7 rounded-full border border-dz-mid bg-dz-dark text-sm"
-                >
-                  −
-                </button>
-                <span className="w-4 text-center text-sm">{item.qty}</span>
-                <button
-                  type="button"
-                  onClick={() => changeQty(item.id, 1)}
-                  className="h-7 w-7 rounded-full border border-dz-mid bg-dz-dark text-sm"
-                >
-                  +
-                </button>
-              </div>
-              <div className="w-16 text-right font-bold">
-                ${(item.price * item.qty).toFixed(2)}
-              </div>
+        items.map((item) => (
+          <div key={item.id} className="cart-item">
+            <div style={{ flex: 1 }}>
+              <strong>{item.name}</strong>
+              <br />
+              <span style={{ color: "var(--muted)", fontSize: 13 }}>{item.store}</span>
             </div>
-          ))}
-        </div>
+            <div className="qty">
+              <button type="button" onClick={() => changeQty(item.id, -1)}>
+                −
+              </button>
+              <span>{item.qty}</span>
+              <button type="button" onClick={() => changeQty(item.id, 1)}>
+                +
+              </button>
+            </div>
+            <div style={{ fontWeight: 700 }}>${(item.price * item.qty).toFixed(2)}</div>
+          </div>
+        ))
       )}
 
       {items.length > 0 ? (
-        <div className="mx-4 mt-4 rounded-xl bg-dz-card p-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-dz-muted">Subtotal</span>
-            <span className="font-bold">${subtotal.toFixed(2)}</span>
-          </div>
-          <p className="mt-2 text-[12px] text-dz-muted">
+        <div id="cartTotal" style={{ padding: 16, fontWeight: 700, fontSize: 18 }}>
+          Subtotal: ${subtotal.toFixed(2)}
+          <div style={{ fontWeight: 400, fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
             Delivery (standard): $8.99 – $24.99 depending on vehicle
             <br />
             Exact total calculated at checkout.
-          </p>
+          </div>
         </div>
       ) : null}
 
-      <div className="p-4">
-        {items.length > 0 ? (
-          <Link
-            href="/tracking"
-            className="mb-3 block w-full rounded-2xl bg-dz-orange py-4 text-center text-base font-bold text-white"
-          >
-            Checkout (stub) · Track drop
-          </Link>
-        ) : null}
-        <Link
-          href="/"
-          className="block w-full rounded-2xl border border-dz-mid py-3 text-center text-sm text-dz-muted"
-        >
+      {items.length > 0 ? (
+        <Link href="/tracking" className="checkout-btn">
+          Drop it now →
+        </Link>
+      ) : (
+        <Link href="/" className="checkout-btn" style={{ background: "var(--card)" }}>
           Keep browsing
         </Link>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

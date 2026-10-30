@@ -14,27 +14,23 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-dz-border bg-dz-dark/95 pb-2 backdrop-blur-md">
-      <div className="mx-auto flex max-w-lg justify-around pt-2">
-        {items.map((item) => {
-          const active =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex min-w-[64px] flex-col items-center gap-0.5 px-2 py-1 text-[11px] transition-colors ${
-                active ? "font-semibold text-dz-orange" : "text-dz-muted"
-              }`}
-            >
-              <span className="text-lg leading-none">{item.icon}</span>
-              {item.label}
-            </Link>
-          );
-        })}
-      </div>
+    <nav className="bottom-nav">
+      {items.map((item) => {
+        const active =
+          item.href === "/" || item.href.startsWith("/#")
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(item.href + "/");
+        return (
+          <Link
+            key={item.href + item.label}
+            href={item.href}
+            className={`nav-item${active ? " active" : ""}`}
+          >
+            <div className="nav-icon">{item.icon}</div>
+            {item.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

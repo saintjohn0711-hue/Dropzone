@@ -15,6 +15,7 @@ export function HomeBrowse() {
   const [storeId, setStoreId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("default");
+  const [showCount, setShowCount] = useState("6");
 
   const filtered = useMemo(() => {
     let list: Product[] = products.filter(
@@ -29,116 +30,121 @@ export function HomeBrowse() {
     if (sort === "eta")
       list = [...list].sort((a, b) => parseInt(a.eta, 10) - parseInt(b.eta, 10));
 
+    if (showCount !== "all") list = list.slice(0, parseInt(showCount, 10));
     return list;
-  }, [category, storeId, query, sort]);
+  }, [category, storeId, query, sort, showCount]);
 
   return (
-    <div>
-      <div id="search" className="space-y-3 px-4 py-3">
+    <>
+      <div id="search" className="search-bar">
+        <span>🔍</span>
         <input
+          type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search materials, tools, supplies…"
-          className="w-full rounded-xl border border-dz-border bg-dz-card px-4 py-3 text-sm text-dz-text outline-none placeholder:text-dz-muted focus:border-dz-orange"
+          placeholder="What do you need on site?"
         />
-        <div className="flex gap-2">
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="flex-1 rounded-xl border border-dz-border bg-dz-card px-3 py-2 text-sm text-dz-text"
-          >
-            <option value="default">Sort: Featured</option>
-            <option value="price-asc">Price: Low → High</option>
-            <option value="price-desc">Price: High → Low</option>
-            <option value="eta">Fastest ETA</option>
-          </select>
-        </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {categories.map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => setCategory(c)}
-            className="min-w-[64px] shrink-0 text-center"
-          >
-            <div
-              className={`mx-auto mb-1.5 flex h-[52px] w-[52px] items-center justify-center rounded-2xl text-xl transition-colors ${
-                c === category ? "bg-dz-orange" : "bg-dz-card"
-              }`}
-            >
-              {categoryIcons[c] ?? "📦"}
-            </div>
-            <span className="text-[11px] text-dz-muted">{c}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="store-selector">
         {stores.map((s) => (
           <button
             key={s.id}
             type="button"
+            className={`store-chip${storeId === s.id ? " active" : ""}`}
             onClick={() => setStoreId(s.id)}
-            className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs transition-colors ${
-              storeId === s.id
-                ? "border-dz-orange bg-dz-orange text-white"
-                : "border-dz-mid bg-dz-card text-dz-text"
-            }`}
           >
             {s.name}
-            {s.dist ? ` · ${s.dist}` : ""}
+            {s.dist ? ` • ${s.dist}` : ""}
           </button>
         ))}
       </div>
 
-      <div className="px-4 pb-2">
-        <h2 className="font-display text-lg font-bold">
-          Near you <span className="text-sm font-medium text-dz-orange">· Fast Drop</span>
-        </h2>
+      <div className="filter-row">
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="default">Sort: Default</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="eta">Fastest ETA</option>
+        </select>
+        <select value={showCount} onChange={(e) => setShowCount(e.target.value)}>
+          <option value="4">Show 4</option>
+          <option value="6">Show 6</option>
+          <option value="8">Show 8</option>
+          <option value="all">Show All</option>
+        </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 px-4 pb-6">
-        {filtered.map((p, i) => (
-          <Link
-            key={p.id}
-            href={`/product/${p.id}`}
-            className="animate-fade-up overflow-hidden rounded-2xl bg-dz-card"
-            style={{ animationDelay: `${i * 40}ms` }}
+      <div className="categories">
+        {categories.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={`cat${c === category ? " active" : ""}`}
+            onClick={() => setCategory(c)}
           >
+            <div className="cat-icon">{categoryIcons[c] ?? "📦"}</div>
+            <div style={{ fontSize: 11 }}>{c}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="section-title">
+        Fast drops near you <span>See all</span>
+      </div>
+
+      <div className="products">
+        {filtered.map((p) => (
+          <Link key={p.id} href={`/product/${p.id}`} className="product-card">
             <div
-              className="h-28 bg-cover bg-center"
+              className="product-img"
               style={{ backgroundImage: `url(${p.img})` }}
-              role="img"
-              aria-label={p.name}
             />
-            <div className="p-3">
-              <span className="mb-1 inline-block rounded bg-dz-orange px-1.5 py-0.5 text-[9px] font-bold text-white">
-                FAST DROP
-              </span>
-              <div className="line-clamp-2 text-sm font-semibold leading-snug">{p.name}</div>
-              <div className="mt-1 text-[11px] text-dz-muted">
-                {p.store} · {p.eta}
+            <div className="product-info">
+              <span className="badge">FAST DROP</span>
+              <div className="product-name">{p.name}</div>
+              <div className="product-store">
+                {p.store} • {p.eta}
               </div>
-              <div className="mt-1 font-bold text-dz-orange">${p.price.toFixed(2)}</div>
+              <div className="product-price">${p.price.toFixed(2)}</div>
             </div>
           </Link>
         ))}
         {filtered.length === 0 ? (
-          <p className="col-span-2 py-10 text-center text-sm text-dz-muted">
+          <p className="empty-state" style={{ gridColumn: "1 / -1" }}>
             No products match your filters.
           </p>
         ) : null}
       </div>
 
-      <footer className="px-4 pb-8 text-center text-[13px] text-dz-muted">
-        DropZone · jobsite delivery shell
-        <div className="mt-2 flex justify-center gap-4 text-dz-orange">
-          <span>Facebook</span>
-          <span>Instagram</span>
+      <div className="driver-banner">
+        <div style={{ fontSize: 28 }}>🚐</div>
+        <div style={{ flex: 1 }}>
+          <h3>Want to be a DropZone driver?</h3>
+          <p>
+            Car, pickup, box truck, or drone? Register your vehicle and earn on
+            jobsite drops.
+          </p>
         </div>
-      </footer>
-    </div>
+        <button type="button" className="driver-btn">
+          Apply
+        </button>
+      </div>
+
+      <div
+        style={{
+          textAlign: "center",
+          padding: "20px 16px 30px",
+          color: "var(--muted)",
+          fontSize: 13,
+        }}
+      >
+        <div style={{ marginBottom: 8 }}>Follow DropZone</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
+          <span style={{ color: "var(--orange)", fontWeight: 600 }}>f Facebook</span>
+          <span style={{ color: "var(--orange)", fontWeight: 600 }}>📷 Instagram</span>
+        </div>
+      </div>
+    </>
   );
 }

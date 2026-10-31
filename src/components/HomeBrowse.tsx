@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   categories,
@@ -18,11 +19,42 @@ export function HomeBrowse({
   catalogSource?: "supabase" | "seed";
 }) {
   const { t } = useLocale();
+  const router = useRouter();
   const [category, setCategory] = useState<string>("All");
   const [storeId, setStoreId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("default");
   const [showCount, setShowCount] = useState("6");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+
+  async function refreshInventory() {
+    setRefreshing(true);
+    setRefreshMsg(null);
+    try {
+      const res = await fetch("/api/inventory/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "box-store-scrubber", dryRun: false }),
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        setRefreshMsg(
+          t.inventoryRefreshed.replace(
+            "{n}",
+            String(json.scrub?.persisted ?? 0),
+          ),
+        );
+        router.refresh();
+      } else {
+        setRefreshMsg(json.error || t.inventoryRefreshError);
+      }
+    } catch {
+      setRefreshMsg(t.inventoryRefreshError);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     let list: Product[] = products.filter(
@@ -105,6 +137,18 @@ export function HomeBrowse({
         </span>
       </div>
 
+      <div className="inventory-refresh-row">
+        <button
+          type="button"
+          className="inventory-refresh-btn"
+          disabled={refreshing}
+          onClick={refreshInventory}
+        >
+          {refreshing ? t.inventoryRefreshing : t.inventoryRefresh}
+        </button>
+        {refreshMsg ? <span className="inventory-refresh-msg">{refreshMsg}</span> : null}
+      </div>
+
       <div className="products">
         {filtered.map((p) => (
           <Link key={p.id} href={`/product/${p.id}`} className="product-card">
@@ -135,9 +179,14 @@ export function HomeBrowse({
           <h3>{t.driverTitle}</h3>
           <p>{t.driverBody}</p>
         </div>
-        <Link href="/driver" className="driver-btn">
-          {t.apply}
-        </Link>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <Link href="/driver" className="driver-btn">
+            {t.apply}
+          </Link>
+          <Link href="/driver/login" className="driver-btn-secondary">
+            {t.driverLoginCta}
+          </Link>
+        </div>
       </div>
 
       <div

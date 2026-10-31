@@ -7,6 +7,7 @@ import {
   DRIVER_STORAGE_KEY,
   type VehicleType,
 } from "@/lib/drivers";
+import { DRIVER_SESSION_STORAGE } from "@/lib/driver-session-client";
 import { localCreateDriver } from "@/lib/drivers-local";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
@@ -55,6 +56,20 @@ export function DriverSignup() {
       const json = await res.json();
       if (res.ok && json.ok) {
         localStorage.setItem(DRIVER_STORAGE_KEY, json.driver.id);
+        // Issue session so dashboard auth gate passes
+        try {
+          const loginRes = await fetch("/api/drivers/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const loginJson = await loginRes.json();
+          if (loginRes.ok && loginJson.token) {
+            localStorage.setItem(DRIVER_SESSION_STORAGE, loginJson.token);
+          }
+        } catch {
+          /* dashboard may still load via id fallback */
+        }
         router.push(`/driver/dashboard?id=${json.driver.id}`);
         return;
       }
@@ -63,6 +78,7 @@ export function DriverSignup() {
       if (res.status === 503 || json.hint) {
         const driver = localCreateDriver(payload);
         localStorage.setItem(DRIVER_STORAGE_KEY, driver.id);
+        localStorage.setItem(DRIVER_SESSION_STORAGE, `local-${driver.id}`);
         setNote(t.driverLocalNote);
         router.push(`/driver/dashboard?id=${driver.id}&local=1`);
         return;
@@ -173,7 +189,7 @@ export function DriverSignup() {
 
       <p className="driver-form-foot">
         {t.driverAlreadyHave}{" "}
-        <Link href="/driver/dashboard">{t.driverOpenDashboard}</Link>
+        <Link href="/driver/login">{t.driverLoginCta}</Link>
       </p>
     </form>
   );

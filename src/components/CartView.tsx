@@ -87,7 +87,7 @@ export function CartView() {
       ) : null}
 
       {items.length > 0 ? (
-        <Link href="/tracking" className="checkout-btn">
+        <Link href="/checkout" className="checkout-btn">
           {t.dropItNow}
         </Link>
       ) : (

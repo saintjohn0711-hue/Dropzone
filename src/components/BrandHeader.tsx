@@ -11,7 +11,10 @@ type TitleKey =
   | "liveDrop"
   | "chatWithAlex"
   | "driverSignupNav"
-  | "driverDashboardNav";
+  | "driverDashboardNav"
+  | "driverLoginNav"
+  | "checkoutNav"
+  | "orderConfirmNav";
 
 export function BrandHeader({
   title,

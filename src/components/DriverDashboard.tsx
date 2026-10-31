@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   DRIVER_STORAGE_KEY,
@@ -11,7 +11,11 @@ import {
   type DriverStatus,
 } from "@/lib/drivers";
 import {
-  localGetByEmail,
+  authHeaders,
+  clearStoredDriverToken,
+  getStoredDriverToken,
+} from "@/lib/driver-session-client";
+import {
   localGetDriverProfile,
   localSetStatus,
 } from "@/lib/drivers-local";
@@ -19,6 +23,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export function DriverDashboard() {
   const { t } = useLocale();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [driver, setDriver] = useState<Driver | null>(null);
   const [reviews, setReviews] = useState<DriverReview[]>([]);
@@ -27,111 +32,114 @@ export function DriverDashboard() {
   const [note, setNote] = useState<string | null>(null);
   const [localMode, setLocalMode] = useState(false);
   const [toggling, setToggling] = useState(false);
-  const [lookupEmail, setLookupEmail] = useState("");
+  const [authed, setAuthed] = useState(false);
 
   const applyProfile = useCallback(
     (next: Driver, nextReviews: DriverReview[], local: boolean, hint?: string) => {
       setDriver(next);
       setReviews(nextReviews.slice(0, 3));
       setLocalMode(local);
+      setAuthed(true);
       localStorage.setItem(DRIVER_STORAGE_KEY, next.id);
       setNote(hint || (local ? t.driverLocalNote : null));
     },
     [t.driverLocalNote],
   );
 
-  const loadById = useCallback(
-    async (id: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/drivers/${id}`);
-        const json = await res.json();
-        if (res.ok && json.ok) {
+  const loadAuthed = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const token = getStoredDriverToken();
+    const idHint =
+      searchParams.get("id") || localStorage.getItem(DRIVER_STORAGE_KEY);
+
+    // Local demo session (no driver_sessions table / offline)
+    if (token?.startsWith("local-") || searchParams.get("local") === "1") {
+      const id = token?.startsWith("local-") ? token.slice(6) : idHint;
+      const local = id ? localGetDriverProfile(id) : null;
+      if (local) applyProfile(local.driver, local.reviews, true);
+      else {
+        setAuthed(false);
+        setDriver(null);
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (!token) {
+      // Soft allow: if SQL sessions missing but driver id known, load profile
+      if (idHint) {
+        try {
+          const profileRes = await fetch(`/api/drivers/${idHint}`);
+          const profileJson = await profileRes.json();
+          if (profileRes.ok && profileJson.ok) {
+            applyProfile(
+              profileJson.driver,
+              profileJson.reviews ?? [],
+              false,
+              t.driverMustLoginSoft,
+            );
+            setLoading(false);
+            return;
+          }
+        } catch {
+          /* fall through to login gate */
+        }
+      }
+      setLoading(false);
+      setAuthed(false);
+      setDriver(null);
+      return;
+    }
+    try {
+      const res = await fetch("/api/drivers/me", { headers: authHeaders() });
+      const json = await res.json();
+      if (res.ok && json.ok && json.driver) {
+        applyProfile(json.driver, json.reviews ?? [], false, json.hint);
+        return;
+      }
+      if (res.status === 401) {
+        clearStoredDriverToken();
+        setAuthed(false);
+        setDriver(null);
+        return;
+      }
+      // Session table missing — allow id query + local fallback for demo
+      if (idHint) {
+        const profileRes = await fetch(`/api/drivers/${idHint}`);
+        const profileJson = await profileRes.json();
+        if (profileRes.ok && profileJson.ok) {
           applyProfile(
-            json.driver,
-            json.reviews ?? [],
+            profileJson.driver,
+            profileJson.reviews ?? [],
             false,
-            json.hint,
+            profileJson.hint || json.hint,
           );
           return;
         }
-        const local = localGetDriverProfile(id);
+        const local = localGetDriverProfile(idHint);
         if (local) {
           applyProfile(local.driver, local.reviews, true);
           return;
         }
-        setError(json.hint ? `${json.error}\n${json.hint}` : json.error);
-        setDriver(null);
-        setReviews([]);
-      } catch {
-        const local = localGetDriverProfile(id);
-        if (local) {
-          applyProfile(local.driver, local.reviews, true);
-        } else {
-          setError(t.driverLoadError);
-          setDriver(null);
-          setReviews([]);
-        }
-      } finally {
-        setLoading(false);
       }
-    },
-    [applyProfile, t.driverLoadError],
-  );
-
-  useEffect(() => {
-    const fromQuery = searchParams.get("id");
-    const fromStorage =
-      typeof window !== "undefined"
-        ? localStorage.getItem(DRIVER_STORAGE_KEY)
-        : null;
-    const id = fromQuery || fromStorage;
-    if (searchParams.get("local") === "1") setLocalMode(true);
-    if (id) void loadById(id);
-    else {
-      setLoading(false);
-      setDriver(null);
-    }
-  }, [searchParams, loadById]);
-
-  async function lookup() {
-    if (!lookupEmail.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/drivers?email=${encodeURIComponent(lookupEmail.trim().toLowerCase())}`,
-      );
-      const json = await res.json();
-      if (res.ok && json.ok && json.driver) {
-        await loadById(json.driver.id);
-        return;
-      }
-      const local = localGetByEmail(lookupEmail);
-      if (local) {
-        const profile = localGetDriverProfile(local.id);
-        if (profile) applyProfile(profile.driver, profile.reviews, true);
-      } else {
-        setError(
-          json.hint
-            ? `${json.error}\n${json.hint}`
-            : json.error || t.driverNotFound,
-        );
-        setDriver(null);
-      }
+      setError(json.hint ? `${json.error}\n${json.hint}` : json.error);
+      setAuthed(false);
     } catch {
-      const local = localGetByEmail(lookupEmail);
-      if (local) {
-        const profile = localGetDriverProfile(local.id);
-        if (profile) applyProfile(profile.driver, profile.reviews, true);
-      } else {
+      const local = idHint ? localGetDriverProfile(idHint) : null;
+      if (local) applyProfile(local.driver, local.reviews, true);
+      else {
         setError(t.driverLoadError);
+        setAuthed(false);
       }
     } finally {
       setLoading(false);
     }
-  }
+  }, [applyProfile, searchParams, t.driverLoadError, t.driverMustLoginSoft]);
+
+  useEffect(() => {
+    void loadAuthed();
+  }, [loadAuthed]);
 
   async function setStatus(status: DriverStatus) {
     if (!driver || toggling) return;
@@ -145,36 +153,35 @@ export function DriverDashboard() {
       }
       const res = await fetch(`/api/drivers/${driver.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ status }),
       });
       const json = await res.json();
       if (res.ok && json.ok) {
         setDriver({ ...driver, ...json.driver });
-      } else if (res.status === 503 || json.hint) {
-        const updated = localSetStatus(driver.id, status);
-        if (updated) {
-          setDriver(updated);
-          setLocalMode(true);
-          setNote(t.driverLocalNote);
-        } else {
-          setError(json.error);
-        }
       } else {
         setError(json.hint ? `${json.error}\n${json.hint}` : json.error);
       }
     } catch {
-      const updated = localSetStatus(driver.id, status);
-      if (updated) {
-        setDriver(updated);
-        setLocalMode(true);
-        setNote(t.driverLocalNote);
-      } else {
-        setError(t.driverLoadError);
-      }
+      setError(t.driverLoadError);
     } finally {
       setToggling(false);
     }
+  }
+
+  async function logout() {
+    try {
+      await fetch("/api/drivers/logout", {
+        method: "POST",
+        headers: authHeaders(),
+      });
+    } catch {
+      /* ignore */
+    }
+    clearStoredDriverToken();
+    setDriver(null);
+    setAuthed(false);
+    router.push("/driver/login");
   }
 
   function vehicleLabel(type: string) {
@@ -196,28 +203,19 @@ export function DriverDashboard() {
     return <p className="empty-state">{t.driverLoading}</p>;
   }
 
-  if (!driver) {
+  if (!authed || !driver) {
     return (
       <div className="driver-form">
         <h2 className="driver-form-title">{t.driverDashboardTitle}</h2>
-        <p className="driver-form-lead">{t.driverLookupLead}</p>
-        <label className="driver-label">
-          {t.driverEmail}
-          <input
-            type="email"
-            value={lookupEmail}
-            onChange={(e) => setLookupEmail(e.target.value)}
-            placeholder="you@email.com"
-          />
-        </label>
+        <p className="driver-form-lead">{t.driverMustLogin}</p>
         {error ? (
           <p className="driver-error" role="alert">
             {error}
           </p>
         ) : null}
-        <button type="button" className="driver-submit" onClick={lookup}>
-          {t.driverOpenDashboard}
-        </button>
+        <Link href="/driver/login" className="driver-submit" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
+          {t.driverLoginCta}
+        </Link>
         <p className="driver-form-foot">
           {t.driverNeedAccount}{" "}
           <Link href="/driver">{t.driverCreateAccount}</Link>
@@ -336,7 +334,7 @@ export function DriverDashboard() {
             <blockquote key={r.id} className="driver-review-card">
               <div className="driver-review-top">
                 <span className="driver-review-stars">
-                  {"★".repeat(Math.round(r.rating))}
+                  {"★".repeat(Math.round(Number(r.rating)))}
                   <span className="driver-review-rating">
                     {Number(r.rating).toFixed(1)}
                   </span>
@@ -355,6 +353,9 @@ export function DriverDashboard() {
         </p>
       ) : null}
 
+      <button type="button" className="driver-logout" onClick={logout}>
+        {t.driverLogout}
+      </button>
       <Link href="/driver" className="driver-secondary-link">
         {t.driverCreateAnother}
       </Link>

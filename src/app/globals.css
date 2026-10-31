@@ -610,7 +610,208 @@ select {
   border: 1.5px solid var(--border);
   border-radius: 16px;
   padding: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+}
+
+.driver-profile-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.driver-rank-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+}
+
+.driver-rank-badge.tier-bronze {
+  background: #f0e6d8;
+  border-color: #c4a484;
+  color: #6b4a2e;
+}
+
+.driver-rank-badge.tier-silver {
+  background: #e8ecef;
+  border-color: #9aa7b2;
+  color: #3d4a55;
+}
+
+.driver-rank-badge.tier-gold {
+  background: #f7ecd0;
+  border-color: #d4b45a;
+  color: #7a5a10;
+}
+
+.driver-rank-badge.tier-elite {
+  background: #dff0e3;
+  border-color: #6fad7f;
+  color: var(--live);
+}
+
+.driver-rank-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: linear-gradient(135deg, #e6ede7 0%, #f7faf7 55%, #fff4ec 100%);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.driver-rank-pos {
+  min-width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--dark);
+  color: #f7faf7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.driver-rank-banner strong {
+  display: block;
+  font-size: 14px;
+  color: var(--dark);
+  margin-bottom: 2px;
+}
+
+.driver-rank-banner p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.driver-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.driver-stat {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.driver-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1.1;
+}
+
+.driver-stat-star {
+  color: var(--orange);
+  font-size: 14px;
+  margin-left: 2px;
+}
+
+.driver-stat-label {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.tier-text-bronze { color: #6b4a2e; }
+.tier-text-silver { color: #3d4a55; }
+.tier-text-gold { color: #7a5a10; }
+.tier-text-elite { color: var(--live); }
+
+.driver-reviews {
+  margin: 4px 0 12px;
+}
+
+.driver-reviews-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.driver-reviews-head h3 {
+  font-size: 15px;
+  color: var(--dark);
+}
+
+.driver-reviews-head span {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.driver-reviews-empty {
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--olive-soft);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1.5px solid var(--border);
+}
+
+.driver-review-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 0 0 8px;
+}
+
+.driver-review-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.driver-review-stars {
+  color: var(--orange);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.driver-review-rating {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+
+.driver-review-card cite {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.driver-review-card p {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
 }
 
 .driver-avatar {
@@ -751,10 +952,6 @@ select {
   pointer-events: none;
 }
 
-.driver-toggle-label {
-  pointer-events: none;
-}
-
 .driver-status-toggle.on .driver-toggle-knob {
   transform: translateX(62px);
   background: var(--live);
@@ -768,6 +965,7 @@ select {
 .driver-toggle-label {
   display: inline-block;
   line-height: 38px;
+  pointer-events: none;
 }
 
 .driver-secondary-link {

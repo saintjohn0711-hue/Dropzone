@@ -1,22 +1,11 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@supabase/supabase-js";
 import type { DriverStatus, VehicleType } from "@/lib/drivers";
+import { loadDriverProfile } from "@/lib/driver-profile-server";
+import { getWriteClient, isMissingRelation } from "@/lib/supabase/write-client";
 
 export const runtime = "nodejs";
 
 const VEHICLES: VehicleType[] = ["car", "pickup", "box_truck", "drone"];
-
-function writeClient() {
-  const admin = createAdminClient();
-  if (admin) return admin;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 /** PATCH — update driver profile / active|inactive status */
 export async function PATCH(
@@ -51,7 +40,7 @@ export async function PATCH(
     );
   }
 
-  const client = writeClient();
+  const client = getWriteClient();
   if (!client) {
     return NextResponse.json(
       { ok: false, error: "Supabase not configured" },
@@ -79,8 +68,7 @@ export async function PATCH(
     .maybeSingle();
 
   if (error) {
-    const missing =
-      error.code === "PGRST205" || error.message.includes("schema cache");
+    const missing = isMissingRelation(error);
     return NextResponse.json(
       {
         ok: false,
@@ -100,30 +88,29 @@ export async function PATCH(
   return NextResponse.json({ ok: true, driver: data });
 }
 
+/** GET — driver profile with rank/drives + best reviews (seeds when empty) */
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const client = writeClient();
-  if (!client) {
+  const forceSeed = new URL(request.url).searchParams.get("seed") === "1";
+  const result = await loadDriverProfile(id, { forceSeed });
+
+  if ("error" in result) {
     return NextResponse.json(
-      { ok: false, error: "Supabase not configured" },
-      { status: 503 },
+      { ok: false, error: result.error, hint: result.hint },
+      { status: result.status },
     );
   }
 
-  const { data, error } = await client
-    .from("drivers")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
-  }
-  if (!data) {
-    return NextResponse.json({ ok: false, error: "Driver not found" }, { status: 404 });
-  }
-  return NextResponse.json({ ok: true, driver: data });
+  return NextResponse.json({
+    ok: true,
+    driver: result.driver,
+    reviews: result.reviews,
+    seeded: result.seeded,
+    statsPersisted: result.statsPersisted,
+    reviewsPersisted: result.reviewsPersisted,
+    hint: result.hint,
+  });
 }

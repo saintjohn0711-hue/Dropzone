@@ -6,11 +6,13 @@ import { useCallback, useEffect, useState } from "react";
 import {
   DRIVER_STORAGE_KEY,
   type Driver,
+  type DriverRankTier,
+  type DriverReview,
   type DriverStatus,
 } from "@/lib/drivers";
 import {
   localGetByEmail,
-  localGetDriver,
+  localGetDriverProfile,
   localSetStatus,
 } from "@/lib/drivers-local";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -19,11 +21,24 @@ export function DriverDashboard() {
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const [driver, setDriver] = useState<Driver | null>(null);
+  const [reviews, setReviews] = useState<DriverReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [localMode, setLocalMode] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [lookupEmail, setLookupEmail] = useState("");
+
+  const applyProfile = useCallback(
+    (next: Driver, nextReviews: DriverReview[], local: boolean, hint?: string) => {
+      setDriver(next);
+      setReviews(nextReviews.slice(0, 3));
+      setLocalMode(local);
+      localStorage.setItem(DRIVER_STORAGE_KEY, next.id);
+      setNote(hint || (local ? t.driverLocalNote : null));
+    },
+    [t.driverLocalNote],
+  );
 
   const loadById = useCallback(
     async (id: string) => {
@@ -33,34 +48,36 @@ export function DriverDashboard() {
         const res = await fetch(`/api/drivers/${id}`);
         const json = await res.json();
         if (res.ok && json.ok) {
-          setDriver(json.driver);
-          setLocalMode(false);
-          localStorage.setItem(DRIVER_STORAGE_KEY, json.driver.id);
+          applyProfile(
+            json.driver,
+            json.reviews ?? [],
+            false,
+            json.hint,
+          );
           return;
         }
-        const local = localGetDriver(id);
+        const local = localGetDriverProfile(id);
         if (local) {
-          setDriver(local);
-          setLocalMode(true);
-          localStorage.setItem(DRIVER_STORAGE_KEY, local.id);
+          applyProfile(local.driver, local.reviews, true);
           return;
         }
         setError(json.hint ? `${json.error}\n${json.hint}` : json.error);
         setDriver(null);
+        setReviews([]);
       } catch {
-        const local = localGetDriver(id);
+        const local = localGetDriverProfile(id);
         if (local) {
-          setDriver(local);
-          setLocalMode(true);
+          applyProfile(local.driver, local.reviews, true);
         } else {
           setError(t.driverLoadError);
           setDriver(null);
+          setReviews([]);
         }
       } finally {
         setLoading(false);
       }
     },
-    [t.driverLoadError],
+    [applyProfile, t.driverLoadError],
   );
 
   useEffect(() => {
@@ -88,29 +105,26 @@ export function DriverDashboard() {
       );
       const json = await res.json();
       if (res.ok && json.ok && json.driver) {
-        setDriver(json.driver);
-        setLocalMode(false);
-        localStorage.setItem(DRIVER_STORAGE_KEY, json.driver.id);
+        await loadById(json.driver.id);
+        return;
+      }
+      const local = localGetByEmail(lookupEmail);
+      if (local) {
+        const profile = localGetDriverProfile(local.id);
+        if (profile) applyProfile(profile.driver, profile.reviews, true);
       } else {
-        const local = localGetByEmail(lookupEmail);
-        if (local) {
-          setDriver(local);
-          setLocalMode(true);
-          localStorage.setItem(DRIVER_STORAGE_KEY, local.id);
-        } else {
-          setError(
-            json.hint
-              ? `${json.error}\n${json.hint}`
-              : json.error || t.driverNotFound,
-          );
-          setDriver(null);
-        }
+        setError(
+          json.hint
+            ? `${json.error}\n${json.hint}`
+            : json.error || t.driverNotFound,
+        );
+        setDriver(null);
       }
     } catch {
       const local = localGetByEmail(lookupEmail);
       if (local) {
-        setDriver(local);
-        setLocalMode(true);
+        const profile = localGetDriverProfile(local.id);
+        if (profile) applyProfile(profile.driver, profile.reviews, true);
       } else {
         setError(t.driverLoadError);
       }
@@ -136,12 +150,13 @@ export function DriverDashboard() {
       });
       const json = await res.json();
       if (res.ok && json.ok) {
-        setDriver(json.driver);
+        setDriver({ ...driver, ...json.driver });
       } else if (res.status === 503 || json.hint) {
         const updated = localSetStatus(driver.id, status);
         if (updated) {
           setDriver(updated);
           setLocalMode(true);
+          setNote(t.driverLocalNote);
         } else {
           setError(json.error);
         }
@@ -153,6 +168,7 @@ export function DriverDashboard() {
       if (updated) {
         setDriver(updated);
         setLocalMode(true);
+        setNote(t.driverLocalNote);
       } else {
         setError(t.driverLoadError);
       }
@@ -167,6 +183,13 @@ export function DriverDashboard() {
     if (type === "box_truck") return t.vehicleBox;
     if (type === "drone") return t.vehicleDrone;
     return type;
+  }
+
+  function tierLabel(tier: DriverRankTier | undefined) {
+    if (tier === "elite") return t.driverTierElite;
+    if (tier === "gold") return t.driverTierGold;
+    if (tier === "silver") return t.driverTierSilver;
+    return t.driverTierBronze;
   }
 
   if (loading) {
@@ -204,22 +227,62 @@ export function DriverDashboard() {
   }
 
   const isActive = driver.status === "active";
+  const tier = (driver.rank_tier ?? "bronze") as DriverRankTier;
+  const drives = driver.drives_completed ?? 0;
+  const rating = driver.rating_avg ?? 0;
+  const position = driver.rank_position ?? "—";
+  const area = driver.rank_area || t.driverRankAreaDefault;
 
   return (
     <div className="driver-dashboard">
-      {localMode ? <p className="driver-note">{t.driverLocalNote}</p> : null}
+      {note ? <p className="driver-note">{note}</p> : null}
 
       <div className="driver-profile-card">
         <div className="driver-avatar">🚐</div>
-        <div>
+        <div className="driver-profile-main">
           <h2 className="driver-name">{driver.name}</h2>
           <p className="driver-email">{driver.email}</p>
-          <span
-            className={`driver-status-pill ${isActive ? "active" : "inactive"}`}
-            data-status={driver.status}
-          >
-            {isActive ? t.driverStatusActive : t.driverStatusInactive}
-          </span>
+          <div className="driver-pill-row">
+            <span
+              className={`driver-status-pill ${isActive ? "active" : "inactive"}`}
+              data-status={driver.status}
+            >
+              {isActive ? t.driverStatusActive : t.driverStatusInactive}
+            </span>
+            <span className={`driver-rank-badge tier-${tier}`}>
+              {tierLabel(tier)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="driver-rank-banner">
+        <div className="driver-rank-pos">#{position}</div>
+        <div>
+          <strong>{t.driverRankTitle}</strong>
+          <p>
+            {t.driverRankIn} {area} · {t.driverScore} {driver.rank_score ?? 0}
+          </p>
+        </div>
+      </div>
+
+      <div className="driver-stats-row" aria-label={t.driverStats}>
+        <div className="driver-stat">
+          <div className="driver-stat-value">{drives}</div>
+          <div className="driver-stat-label">{t.driverDrivesCompleted}</div>
+        </div>
+        <div className="driver-stat">
+          <div className="driver-stat-value">
+            {rating ? rating.toFixed(1) : "—"}
+            <span className="driver-stat-star">★</span>
+          </div>
+          <div className="driver-stat-label">{t.driverAvgRating}</div>
+        </div>
+        <div className="driver-stat">
+          <div className={`driver-stat-value tier-text-${tier}`}>
+            {tierLabel(tier)}
+          </div>
+          <div className="driver-stat-label">{t.driverRankTier}</div>
         </div>
       </div>
 
@@ -260,6 +323,31 @@ export function DriverDashboard() {
           </span>
         </button>
       </div>
+
+      <section className="driver-reviews">
+        <div className="driver-reviews-head">
+          <h3>{t.driverBestReviews}</h3>
+          <span>{t.driverTopQuotes}</span>
+        </div>
+        {reviews.length === 0 ? (
+          <p className="driver-reviews-empty">{t.driverNoReviews}</p>
+        ) : (
+          reviews.map((r) => (
+            <blockquote key={r.id} className="driver-review-card">
+              <div className="driver-review-top">
+                <span className="driver-review-stars">
+                  {"★".repeat(Math.round(r.rating))}
+                  <span className="driver-review-rating">
+                    {Number(r.rating).toFixed(1)}
+                  </span>
+                </span>
+                <cite>{r.customer_first_name}</cite>
+              </div>
+              <p>“{r.quote}”</p>
+            </blockquote>
+          ))
+        )}
+      </section>
 
       {error ? (
         <p className="driver-error" role="alert">

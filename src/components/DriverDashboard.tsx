@@ -53,15 +53,35 @@ export function DriverDashboard() {
     const idHint =
       searchParams.get("id") || localStorage.getItem(DRIVER_STORAGE_KEY);
 
-    // Local demo session (no driver_sessions table / offline)
+    // Demo / soft session (no driver_sessions table yet, or offline local driver)
     if (token?.startsWith("local-") || searchParams.get("local") === "1") {
       const id = token?.startsWith("local-") ? token.slice(6) : idHint;
-      const local = id ? localGetDriverProfile(id) : null;
-      if (local) applyProfile(local.driver, local.reviews, true);
-      else {
-        setAuthed(false);
-        setDriver(null);
+      if (id) {
+        try {
+          const profileRes = await fetch(`/api/drivers/${id}`);
+          const profileJson = await profileRes.json();
+          if (profileRes.ok && profileJson.ok) {
+            applyProfile(
+              profileJson.driver,
+              profileJson.reviews ?? [],
+              false,
+              profileJson.hint || t.driverMustLoginSoft,
+            );
+            setLoading(false);
+            return;
+          }
+        } catch {
+          /* try local */
+        }
+        const local = localGetDriverProfile(id);
+        if (local) {
+          applyProfile(local.driver, local.reviews, true);
+          setLoading(false);
+          return;
+        }
       }
+      setAuthed(false);
+      setDriver(null);
       setLoading(false);
       return;
     }
@@ -100,6 +120,24 @@ export function DriverDashboard() {
       }
       if (res.status === 401) {
         clearStoredDriverToken();
+        // Soft recovery: still have driver id from login
+        if (idHint) {
+          try {
+            const profileRes = await fetch(`/api/drivers/${idHint}`);
+            const profileJson = await profileRes.json();
+            if (profileRes.ok && profileJson.ok) {
+              applyProfile(
+                profileJson.driver,
+                profileJson.reviews ?? [],
+                false,
+                t.driverMustLoginSoft,
+              );
+              return;
+            }
+          } catch {
+            /* fall through */
+          }
+        }
         setAuthed(false);
         setDriver(null);
         return;

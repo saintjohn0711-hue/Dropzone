@@ -79,6 +79,8 @@ export const dictionaries = {
     driverLoginError: "Could not sign in.",
     driverLoginApproach:
       "v1: email → opaque session token (hashed server-side). Magic-link email coming later.",
+    driverTryTest: "Try test account",
+    driverUseTestAccount: "Use test account →",
     driverMustLogin: "Sign in to open your driver dashboard.",
     driverMustLoginSoft:
       "Tip: use Driver login for a full session. Showing profile by id for now.",
@@ -280,6 +282,8 @@ export const dictionaries = {
     driverLoginError: "No se pudo iniciar sesión.",
     driverLoginApproach:
       "v1: correo → token de sesión (hash en servidor). Magic link por email después.",
+    driverTryTest: "Probar cuenta de prueba",
+    driverUseTestAccount: "Usar cuenta de prueba →",
     driverMustLogin: "Inicia sesión para ver tu panel de conductor.",
     driverMustLoginSoft:
       "Tip: usa Acceso conductor para una sesión completa. Mostrando perfil por id por ahora.",

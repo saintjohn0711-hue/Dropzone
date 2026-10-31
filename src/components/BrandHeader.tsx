@@ -30,14 +30,12 @@ export function BrandHeader({
   if (centerLogo) {
     return (
       <div className="header header-home">
-        <div className="header-lang-row">
+        <div className="header-lang-float">
           <LanguageToggle />
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/dropzone-logo.jpg" alt="DropZone" className="brand-logo" />
-        <div className="tagline" style={{ fontSize: 12 }}>
-          {t.tagline}
-        </div>
+        <p className="tagline tagline-home">{t.tagline}</p>
       </div>
     );
   }

@@ -748,6 +748,11 @@ select {
   background: white;
   border: 1.5px solid var(--border);
   transition: transform 0.2s ease, background 0.2s ease;
+  pointer-events: none;
+}
+
+.driver-toggle-label {
+  pointer-events: none;
 }
 
 .driver-status-toggle.on .driver-toggle-knob {

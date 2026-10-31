@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runScrub } from "@/lib/inventory";
+import { getHomeDepotConnectionStatus, runScrub } from "@/lib/inventory";
 import { getWriteClient, isMissingRelation } from "@/lib/supabase/write-client";
 
 export const runtime = "nodejs";
@@ -60,7 +60,8 @@ export async function POST(request: Request) {
       storesSeeded,
       storesNote,
       scrub: result,
-      note: "Structured Home Depot / Lowe's adapters (starter SKUs or partner API). No HTML scrape.",
+      homeDepot: result.homeDepot ?? getHomeDepotConnectionStatus(),
+      note: "Structured Home Depot / Lowe's adapters (Impact feed, partner API, or starter SKUs). No HTML scrape.",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Refresh failed";

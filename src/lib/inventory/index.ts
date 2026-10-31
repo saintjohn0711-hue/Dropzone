@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BoxStoreScrubberSource } from "./box-store-scrubber";
+import { getHomeDepotConnectionStatus } from "./home-depot-connection";
 import { HomeDepotInventorySource } from "./home-depot-source";
 import { LowesInventorySource } from "./lowes-source";
 import { SeedInventorySource } from "./seed-source";
@@ -17,6 +18,7 @@ export {
   HomeDepotInventorySource,
   LowesInventorySource,
 };
+export { getHomeDepotConnectionStatus } from "./home-depot-connection";
 
 export function getInventorySources(): StoreInventorySource[] {
   return [
@@ -41,19 +43,39 @@ export async function runScrub(
   const source = getSource(sourceId) ?? new BoxStoreScrubberSource();
   const offers = await source.fetchOffers(options);
 
+  const hdStatus = getHomeDepotConnectionStatus();
+  let hdMeta = {
+    mode: hdStatus.mode,
+    connected: hdStatus.connected,
+    label: hdStatus.label,
+    message: hdStatus.message,
+    envMissing: hdStatus.envMissing,
+  };
+  if (source instanceof HomeDepotInventorySource) {
+    hdMeta = {
+      mode: source.lastMeta.mode,
+      connected: source.lastMeta.connected,
+      label: hdStatus.label,
+      message: source.lastMeta.message,
+      envMissing: hdStatus.envMissing,
+    };
+  }
+
   let persisted = 0;
   let message = dryRun
     ? `Dry-run: ${offers.length} offer(s) from ${source.id} (not written).`
     : `Fetched ${offers.length} offer(s) from ${source.id}.`;
 
-  if (!process.env.INVENTORY_SCRUBBER_ENDPOINT) {
-    message +=
-      " Using structured starter SKUs (no partner API keys). Set INVENTORY_SCRUBBER_ENDPOINT + API_KEY for live feeds.";
+  if (!hdStatus.connected && (sourceId === "home-depot" || sourceId === "box-store-scrubber")) {
+    message += ` HD: ${hdStatus.message}`;
   }
 
   if (!dryRun && offers.length > 0) {
     persisted = await persistOffers(offers);
     message = `Persisted ${persisted} offer(s) from ${source.id}.`;
+    if (!hdStatus.connected && (sourceId === "home-depot" || sourceId === "box-store-scrubber")) {
+      message += " (HD portion from starter SKUs until Impact/partner keys are set.)";
+    }
   } else if (!dryRun && !admin) {
     message +=
       " Cannot upsert: SUPABASE_SERVICE_ROLE_KEY missing or schema not applied.";
@@ -65,6 +87,7 @@ export async function runScrub(
     offers,
     persisted,
     message,
+    homeDepot: hdMeta,
   };
 }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   categories,
   categoryIcons,
@@ -27,6 +27,25 @@ export function HomeBrowse({
   const [showCount, setShowCount] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+  const [hdStatus, setHdStatus] = useState<{
+    connected: boolean;
+    mode: string;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/inventory/home-depot/status")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.ok)
+          setHdStatus({
+            connected: Boolean(j.connected),
+            mode: String(j.mode || "starter"),
+            message: String(j.message || ""),
+          });
+      })
+      .catch(() => null);
+  }, []);
 
   async function refreshInventory() {
     setRefreshing(true);
@@ -39,11 +58,24 @@ export function HomeBrowse({
       });
       const json = await res.json();
       if (res.ok && json.ok) {
+        const hd = json.scrub?.homeDepot || json.homeDepot;
+        if (hd) {
+          setHdStatus({
+            connected: Boolean(hd.connected),
+            mode: String(hd.mode || "starter"),
+            message: String(hd.message || ""),
+          });
+        }
+        const base = t.inventoryRefreshed.replace(
+          "{n}",
+          String(json.scrub?.persisted ?? 0),
+        );
         setRefreshMsg(
-          t.inventoryRefreshed.replace(
-            "{n}",
-            String(json.scrub?.persisted ?? 0),
-          ),
+          hd && !hd.connected
+            ? `${base} · ${t.inventoryHdNotConnected}`
+            : hd?.connected
+              ? `${base} · ${t.inventoryHdConnected}`
+              : base,
         );
         router.refresh();
       } else {
@@ -146,6 +178,14 @@ export function HomeBrowse({
         >
           {refreshing ? t.inventoryRefreshing : t.inventoryRefresh}
         </button>
+        {hdStatus ? (
+          <span
+            className={`inventory-hd-pill ${hdStatus.connected ? "on" : "off"}`}
+            title={hdStatus.message}
+          >
+            {hdStatus.connected ? t.inventoryHdConnected : t.inventoryHdConnect}
+          </span>
+        ) : null}
         {refreshMsg ? <span className="inventory-refresh-msg">{refreshMsg}</span> : null}
       </div>
 

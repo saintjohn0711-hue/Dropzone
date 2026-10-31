@@ -510,6 +510,26 @@ select {
   font-weight: 600;
 }
 
+.inventory-hd-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+}
+
+.inventory-hd-pill.on {
+  background: #dff0e3;
+  color: var(--live);
+  border-color: #9ec7a8;
+}
+
+.inventory-hd-pill.off {
+  background: #fff4ec;
+  color: #9a4b12;
+  border-color: #e8b48a;
+}
+
 .checkout-form {
   padding: 8px 16px 28px;
 }

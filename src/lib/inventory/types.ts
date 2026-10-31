@@ -24,6 +24,14 @@ export type ScrubResult = {
   offers: InventoryOffer[];
   persisted: number;
   message: string;
+  /** Home Depot connection diagnostics when HD was part of the scrub */
+  homeDepot?: {
+    mode: string;
+    connected: boolean;
+    label: string;
+    message: string;
+    envMissing?: string[];
+  };
 };
 
 export interface StoreInventorySource {

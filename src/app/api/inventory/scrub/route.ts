@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getInventorySources, runScrub } from "@/lib/inventory";
+import {
+  getHomeDepotConnectionStatus,
+  getInventorySources,
+  runScrub,
+} from "@/lib/inventory";
 
 export const runtime = "nodejs";
 
@@ -64,6 +68,7 @@ export async function GET() {
       id: s.id,
       label: s.label,
     })),
-    note: "Omit dryRun (or set false) to upsert when SUPABASE_SERVICE_ROLE_KEY is configured.",
+    homeDepot: getHomeDepotConnectionStatus(),
+    note: "Omit dryRun (or set false) to upsert when SUPABASE_SERVICE_ROLE_KEY is configured. HD: Impact feed or partner API — see docs/home-depot-inventory.md",
   });
 }

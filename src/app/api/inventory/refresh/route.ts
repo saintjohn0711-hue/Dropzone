@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   try {
     const result = await runScrub(body.source ?? "box-store-scrubber", {
       dryRun: body.dryRun === true,
-      limit: body.limit ?? 25,
+      limit: body.limit ?? 80,
     });
 
     return NextResponse.json({

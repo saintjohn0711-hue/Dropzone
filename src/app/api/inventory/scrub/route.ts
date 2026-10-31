@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const result = await runScrub(source, {
       storeSlug: body.storeSlug,
       dryRun: body.dryRun,
-      limit: body.limit ?? 25,
+      limit: body.limit ?? 80,
     });
 
     return NextResponse.json({

@@ -24,7 +24,7 @@ export function HomeBrowse({
   const [storeId, setStoreId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("default");
-  const [showCount, setShowCount] = useState("6");
+  const [showCount, setShowCount] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
 
@@ -107,10 +107,10 @@ export function HomeBrowse({
           <option value="eta">{t.sortEta}</option>
         </select>
         <select value={showCount} onChange={(e) => setShowCount(e.target.value)}>
-          <option value="4">{t.show4}</option>
-          <option value="6">{t.show6}</option>
-          <option value="8">{t.show8}</option>
           <option value="all">{t.showAll}</option>
+          <option value="8">{t.show8}</option>
+          <option value="6">{t.show6}</option>
+          <option value="4">{t.show4}</option>
         </select>
       </div>
 

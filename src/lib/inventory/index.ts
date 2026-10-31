@@ -96,6 +96,28 @@ async function persistOffers(offers: InventoryOffer[]): Promise<number> {
     if (error) throw new Error(`stores upsert: ${error.message}`);
   }
 
+  // Best-effort products rows (catalog UI primarily reads product_offers.raw)
+  const seenNames = new Set<string>();
+  for (const o of offers) {
+    if (seenNames.has(o.name)) continue;
+    seenNames.add(o.name);
+    const raw = o.raw ?? {};
+    const { data: existing } = await admin
+      .from("products")
+      .select("id")
+      .eq("name", o.name)
+      .maybeSingle();
+    if (!existing) {
+      await admin.from("products").insert({
+        name: o.name,
+        category: o.category ?? "Materials",
+        weight_class:
+          (typeof raw.weight === "string" && raw.weight) || "medium",
+        image_url: typeof raw.img === "string" ? raw.img : null,
+      });
+    }
+  }
+
   const rows = offers.map((o) => ({
     sku: o.sku,
     store_slug: o.storeSlug,

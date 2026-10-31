@@ -19,9 +19,12 @@ export class BoxStoreScrubberSource implements StoreInventorySource {
       return new LowesInventorySource().fetchOffers(options);
     }
 
+    // Fetch full store catalogs, then apply limit on the merged list
+    // (avoids returning only Home Depot when limit is small).
+    const childOpts = { ...options, limit: undefined };
     const [hd, lw] = await Promise.all([
-      new HomeDepotInventorySource().fetchOffers(options),
-      new LowesInventorySource().fetchOffers(options),
+      new HomeDepotInventorySource().fetchOffers(childOpts),
+      new LowesInventorySource().fetchOffers(childOpts),
     ]);
     let merged = [...hd, ...lw];
     if (options.limit && options.limit > 0) {

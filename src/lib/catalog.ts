@@ -43,7 +43,7 @@ export async function getCatalogProducts(): Promise<{
       .from("product_offers")
       .select("sku, store_slug, price, currency, stock_signal, fetched_at, raw")
       .order("fetched_at", { ascending: false })
-      .limit(48);
+      .limit(80);
 
     if (error || !data || data.length === 0) {
       return { products: seedProducts, source: "seed" };

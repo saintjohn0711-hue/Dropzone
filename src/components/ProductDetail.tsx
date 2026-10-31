@@ -3,17 +3,32 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getVehicleOptions, type Product } from "@/data/products";
-
-const rushOptions = [
-  { id: "standard", label: "Standard", detail: "45–70 min", fee: 8.99 },
-  { id: "rush", label: "Rush Drop", detail: "20–30 min", fee: 18.99 },
-];
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export function ProductDetail({ product }: { product: Product }) {
   const router = useRouter();
+  const { t } = useLocale();
   const vehicles = getVehicleOptions(product.weight);
   const [vehicleId, setVehicleId] = useState(vehicles[0]?.id);
   const [rushId, setRushId] = useState("standard");
+
+  function vehicleLabel(v: (typeof vehicles)[number]) {
+    const opts = t.vehicleOpts;
+    if (v.id === "car") {
+      return {
+        name: opts.car.name,
+        desc: product.weight === "light" ? opts.car.light : opts.car.medium,
+      };
+    }
+    if (v.id === "drone") return { name: opts.drone.name, desc: opts.drone.desc };
+    if (v.id === "pickup") {
+      return {
+        name: opts.pickup.name,
+        desc: product.weight === "heavy" ? opts.pickup.heavy : opts.pickup.medium,
+      };
+    }
+    return { name: opts.box.name, desc: opts.box.desc };
+  }
 
   function addToDrop() {
     try {
@@ -30,6 +45,11 @@ export function ProductDetail({ product }: { product: Product }) {
     router.push("/cart");
   }
 
+  const rushOptions = [
+    { id: "standard", label: t.standard, detail: "45–70 min", fee: 8.99 },
+    { id: "rush", label: t.rushDrop, detail: "20–30 min", fee: 18.99 },
+  ];
+
   return (
     <div className="product-detail">
       <div
@@ -38,7 +58,9 @@ export function ProductDetail({ product }: { product: Product }) {
       />
       <h2 style={{ marginBottom: 8 }}>{product.name}</h2>
       <div style={{ color: "var(--muted)", marginBottom: 8 }}>{product.store}</div>
-      <span className="badge">Delivers in {product.eta}</span>
+      <span className="badge">
+        {t.deliversIn} {product.eta}
+      </span>
       <div style={{ margin: "12px 0", fontSize: 15 }}>{product.stock}</div>
       <div style={{ fontSize: 12, color: "var(--muted)" }}>SKU {product.sku}</div>
       <div
@@ -54,26 +76,29 @@ export function ProductDetail({ product }: { product: Product }) {
       </div>
 
       <div className="vehicle-options">
-        <strong style={{ fontSize: 14 }}>Delivery Vehicle</strong>
-        {vehicles.map((v) => (
-          <button
-            key={v.id}
-            type="button"
-            className={`option-row${vehicleId === v.id ? " selected" : ""}`}
-            onClick={() => setVehicleId(v.id)}
-          >
-            <div>
-              {v.icon} {v.name}
-              <br />
-              <small style={{ color: "var(--muted)" }}>{v.desc}</small>
-            </div>
-            <div className="price-tag">+${v.fee.toFixed(2)}</div>
-          </button>
-        ))}
+        <strong style={{ fontSize: 14 }}>{t.deliveryVehicle}</strong>
+        {vehicles.map((v) => {
+          const label = vehicleLabel(v);
+          return (
+            <button
+              key={v.id}
+              type="button"
+              className={`option-row${vehicleId === v.id ? " selected" : ""}`}
+              onClick={() => setVehicleId(v.id)}
+            >
+              <div>
+                {v.icon} {label.name}
+                <br />
+                <small style={{ color: "var(--muted)" }}>{label.desc}</small>
+              </div>
+              <div className="price-tag">+${v.fee.toFixed(2)}</div>
+            </button>
+          );
+        })}
       </div>
 
       <div className="rush-options">
-        <strong style={{ fontSize: 14 }}>Speed</strong>
+        <strong style={{ fontSize: 14 }}>{t.speed}</strong>
         {rushOptions.map((r) => (
           <button
             key={r.id}
@@ -92,7 +117,7 @@ export function ProductDetail({ product }: { product: Product }) {
       </div>
 
       <button type="button" className="add-btn" onClick={addToDrop}>
-        Add to Drop
+        {t.addToDrop}
       </button>
     </div>
   );

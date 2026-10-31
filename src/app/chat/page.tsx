@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 import { BrandHeader } from "@/components/BrandHeader";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 type Msg = { id: number; from: "driver" | "you"; text: string };
 
@@ -25,6 +26,7 @@ const seed: Msg[] = [
 ];
 
 export default function ChatPage() {
+  const { t } = useLocale();
   const [messages, setMessages] = useState(seed);
   const [draft, setDraft] = useState("");
 
@@ -38,7 +40,7 @@ export default function ChatPage() {
 
   return (
     <AppShell showNav={false}>
-      <BrandHeader title="Chat with Alex" showBack backHref="/tracking" />
+      <BrandHeader titleKey="chatWithAlex" showBack backHref="/tracking" />
       <div style={{ padding: 16, minHeight: "calc(100% - 140px)" }}>
         {messages.map((m) => (
           <div
@@ -53,9 +55,9 @@ export default function ChatPage() {
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Message Alex..."
+          placeholder={t.messageAlex}
         />
-        <button type="submit">Send</button>
+        <button type="submit">{t.send}</button>
       </form>
     </AppShell>
   );

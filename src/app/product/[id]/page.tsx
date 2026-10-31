@@ -19,7 +19,7 @@ export default async function ProductPage({
 
   return (
     <AppShell>
-      <BrandHeader title="Product" showBack backHref="/" />
+      <BrandHeader titleKey="product" showBack backHref="/" />
       <ProductDetail product={product} />
     </AppShell>
   );

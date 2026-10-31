@@ -1,93 +1,78 @@
+"use client";
+
 import { AppShell } from "@/components/AppShell";
 import { BrandHeader } from "@/components/BrandHeader";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export default function PricingPage() {
+  const { t } = useLocale();
+
   return (
     <AppShell>
-      <BrandHeader title="Pricing Guide" showBack />
+      <BrandHeader titleKey="pricingGuide" showBack />
       <div style={{ padding: 16 }}>
         <p style={{ marginBottom: 16, color: "var(--muted)", fontSize: 14 }}>
-          Transparent pricing. No hidden fees. Exact total calculated at checkout based
-          on distance, weight, and demand.
+          {t.pricingIntro}
         </p>
 
-        <h3 style={{ marginBottom: 12 }}>Delivery Speed</h3>
+        <h3 style={{ marginBottom: 12 }}>{t.deliverySpeed}</h3>
         <div className="option-row">
           <div>
-            <strong>Standard</strong>
+            <strong>{t.standard}</strong>
             <br />
-            <small style={{ color: "var(--muted)" }}>45–70 minutes • Most orders</small>
+            <small style={{ color: "var(--muted)" }}>{t.mostOrders}</small>
           </div>
           <div className="price-tag">$8.99 – $24.99</div>
         </div>
         <div className="option-row">
           <div>
-            <strong>Rush Drop</strong>
+            <strong>{t.rushDrop}</strong>
             <br />
-            <small style={{ color: "var(--muted)" }}>20–30 minutes • Priority dispatch</small>
+            <small style={{ color: "var(--muted)" }}>{t.priorityDispatch}</small>
           </div>
           <div className="price-tag">+$10</div>
         </div>
 
-        <h3 style={{ margin: "24px 0 12px" }}>Vehicle Type</h3>
+        <h3 style={{ margin: "24px 0 12px" }}>{t.vehicleType}</h3>
         <div className="option-row">
           <div>
-            🚗 Car / Van
+            🚗 {t.vehicleCar}
             <br />
-            <small style={{ color: "var(--muted)" }}>
-              Small items, hardware, paint, office supplies
-            </small>
+            <small style={{ color: "var(--muted)" }}>{t.vehicleCarDesc}</small>
           </div>
           <div className="price-tag">$6.99 – $8.99</div>
         </div>
         <div className="option-row">
           <div>
-            🛻 Pickup Truck
+            🛻 {t.vehiclePickup}
             <br />
-            <small style={{ color: "var(--muted)" }}>
-              Lumber, bags of cement, medium loads
-            </small>
+            <small style={{ color: "var(--muted)" }}>{t.vehiclePickupDesc}</small>
           </div>
           <div className="price-tag">$12.99 – $14.99</div>
         </div>
         <div className="option-row">
           <div>
-            🚛 Box Truck / Flatbed
+            🚛 {t.vehicleBox}
             <br />
-            <small style={{ color: "var(--muted)" }}>
-              Heavy materials, long items, pallets
-            </small>
+            <small style={{ color: "var(--muted)" }}>{t.vehicleBoxDesc}</small>
           </div>
           <div className="price-tag">$24.99+</div>
         </div>
         <div className="option-row">
           <div>
-            🚁 Drone
+            🚁 {t.vehicleDrone}
             <br />
-            <small style={{ color: "var(--muted)" }}>
-              Ultra-light & urgent only (tools, small hardware)
-            </small>
+            <small style={{ color: "var(--muted)" }}>{t.vehicleDroneDesc}</small>
           </div>
           <div className="price-tag">$12.99</div>
         </div>
 
-        <div
-          style={{
-            marginTop: 24,
-            padding: 14,
-            background: "var(--card)",
-            borderRadius: 12,
-            fontSize: 13,
-          }}
-        >
-          <strong>How it works</strong>
-          <br />
-          • Vehicle is matched to your order size and weight
-          <br />
-          • Distance and current demand may adjust the fee slightly
-          <br />
-          • Rush is available on most orders when drivers are nearby
-          <br />• You see the full price before confirming
+        <div className="soft-card" style={{ marginTop: 24, fontSize: 13 }}>
+          <strong>{t.howItWorks}</strong>
+          <br />• {t.how1}
+          <br />• {t.how2}
+          <br />• {t.how3}
+          <br />• {t.how4}
         </div>
       </div>
     </AppShell>

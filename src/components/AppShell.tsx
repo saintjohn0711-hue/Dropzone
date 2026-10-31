@@ -1,3 +1,5 @@
+"use client";
+
 import { BottomNav } from "./BottomNav";
 
 export function AppShell({
@@ -9,11 +11,6 @@ export function AppShell({
 }) {
   return (
     <div className="phone">
-      <div className="status-bar">
-        <span>9:41</span>
-        <span>DropZone</span>
-        <span>📶 🔋</span>
-      </div>
       <div className="screen-area" style={showNav ? undefined : { paddingBottom: 0 }}>
         {children}
       </div>

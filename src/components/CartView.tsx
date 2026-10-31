@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getProduct } from "@/data/products";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 type CartLine = { id: string; qty: number };
 
 export function CartView() {
+  const { t } = useLocale();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -42,13 +44,13 @@ export function CartView() {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
 
   if (!ready) {
-    return <p className="empty-state">Loading cart…</p>;
+    return <p className="empty-state">{t.loadingCart}</p>;
   }
 
   return (
     <>
       {items.length === 0 ? (
-        <p className="empty-state">Your cart is empty. Drop something in!</p>
+        <p className="empty-state">{t.cartEmpty}</p>
       ) : (
         items.map((item) => (
           <div key={item.id} className="cart-item">
@@ -72,23 +74,23 @@ export function CartView() {
       )}
 
       {items.length > 0 ? (
-        <div id="cartTotal" style={{ padding: 16, fontWeight: 700, fontSize: 18 }}>
-          Subtotal: ${subtotal.toFixed(2)}
+        <div style={{ padding: 16, fontWeight: 700, fontSize: 18 }}>
+          {t.subtotal}: ${subtotal.toFixed(2)}
           <div style={{ fontWeight: 400, fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
-            Delivery (standard): $8.99 – $24.99 depending on vehicle
+            {t.deliveryRange}
             <br />
-            Exact total calculated at checkout.
+            {t.exactTotal}
           </div>
         </div>
       ) : null}
 
       {items.length > 0 ? (
         <Link href="/tracking" className="checkout-btn">
-          Drop it now →
+          {t.dropItNow}
         </Link>
       ) : (
-        <Link href="/" className="checkout-btn" style={{ background: "var(--card)" }}>
-          Keep browsing
+        <Link href="/" className="checkout-btn" style={{ background: "var(--dark)" }}>
+          {t.keepBrowsing}
         </Link>
       )}
     </>

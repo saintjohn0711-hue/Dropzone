@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const items = [
-  { href: "/", label: "Home", icon: "🏠" },
-  { href: "/#search", label: "Search", icon: "🔍" },
-  { href: "/cart", label: "Orders", icon: "📦" },
-  { href: "/pricing", label: "Pricing", icon: "💲" },
-];
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { t } = useLocale();
+
+  const items = [
+    { href: "/", label: t.navHome, icon: "🏠" },
+    { href: "/#search", label: t.navSearch, icon: "🔍" },
+    { href: "/cart", label: t.navOrders, icon: "📦" },
+    { href: "/pricing", label: t.navPricing, icon: "💲" },
+  ];
 
   return (
     <nav className="bottom-nav">

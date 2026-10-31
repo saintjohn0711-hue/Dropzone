@@ -9,8 +9,10 @@ import {
   stores,
   type Product,
 } from "@/data/products";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export function HomeBrowse() {
+  const { t } = useLocale();
   const [category, setCategory] = useState<string>("All");
   const [storeId, setStoreId] = useState("all");
   const [query, setQuery] = useState("");
@@ -42,7 +44,7 @@ export function HomeBrowse() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="What do you need on site?"
+          placeholder={t.searchPlaceholder}
         />
       </div>
 
@@ -54,7 +56,7 @@ export function HomeBrowse() {
             className={`store-chip${storeId === s.id ? " active" : ""}`}
             onClick={() => setStoreId(s.id)}
           >
-            {s.name}
+            {t.stores[s.id as keyof typeof t.stores] ?? s.name}
             {s.dist ? ` • ${s.dist}` : ""}
           </button>
         ))}
@@ -62,16 +64,16 @@ export function HomeBrowse() {
 
       <div className="filter-row">
         <select value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="default">Sort: Default</option>
-          <option value="price-asc">Price: Low to High</option>
-          <option value="price-desc">Price: High to Low</option>
-          <option value="eta">Fastest ETA</option>
+          <option value="default">{t.sortDefault}</option>
+          <option value="price-asc">{t.sortPriceAsc}</option>
+          <option value="price-desc">{t.sortPriceDesc}</option>
+          <option value="eta">{t.sortEta}</option>
         </select>
         <select value={showCount} onChange={(e) => setShowCount(e.target.value)}>
-          <option value="4">Show 4</option>
-          <option value="6">Show 6</option>
-          <option value="8">Show 8</option>
-          <option value="all">Show All</option>
+          <option value="4">{t.show4}</option>
+          <option value="6">{t.show6}</option>
+          <option value="8">{t.show8}</option>
+          <option value="all">{t.showAll}</option>
         </select>
       </div>
 
@@ -84,13 +86,15 @@ export function HomeBrowse() {
             onClick={() => setCategory(c)}
           >
             <div className="cat-icon">{categoryIcons[c] ?? "📦"}</div>
-            <div style={{ fontSize: 11 }}>{c}</div>
+            <div style={{ fontSize: 11 }}>
+              {t.categories[c as keyof typeof t.categories] ?? c}
+            </div>
           </button>
         ))}
       </div>
 
       <div className="section-title">
-        Fast drops near you <span>See all</span>
+        {t.fastDropsNearYou} <span>{t.seeAll}</span>
       </div>
 
       <div className="products">
@@ -101,7 +105,7 @@ export function HomeBrowse() {
               style={{ backgroundImage: `url(${p.img})` }}
             />
             <div className="product-info">
-              <span className="badge">FAST DROP</span>
+              <span className="badge">{t.fastDrop}</span>
               <div className="product-name">{p.name}</div>
               <div className="product-store">
                 {p.store} • {p.eta}
@@ -112,7 +116,7 @@ export function HomeBrowse() {
         ))}
         {filtered.length === 0 ? (
           <p className="empty-state" style={{ gridColumn: "1 / -1" }}>
-            No products match your filters.
+            {t.noProducts}
           </p>
         ) : null}
       </div>
@@ -120,14 +124,11 @@ export function HomeBrowse() {
       <div className="driver-banner">
         <div style={{ fontSize: 28 }}>🚐</div>
         <div style={{ flex: 1 }}>
-          <h3>Want to be a DropZone driver?</h3>
-          <p>
-            Car, pickup, box truck, or drone? Register your vehicle and earn on
-            jobsite drops.
-          </p>
+          <h3>{t.driverTitle}</h3>
+          <p>{t.driverBody}</p>
         </div>
         <button type="button" className="driver-btn">
-          Apply
+          {t.apply}
         </button>
       </div>
 
@@ -139,7 +140,7 @@ export function HomeBrowse() {
           fontSize: 13,
         }}
       >
-        <div style={{ marginBottom: 8 }}>Follow DropZone</div>
+        <div style={{ marginBottom: 8 }}>{t.follow}</div>
         <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
           <span style={{ color: "var(--orange)", fontWeight: 600 }}>f Facebook</span>
           <span style={{ color: "var(--orange)", fontWeight: 600 }}>📷 Instagram</span>

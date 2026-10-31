@@ -1,13 +1,23 @@
 :root {
-  --dark: #1a241c;
-  --green: #2c3e2f;
-  --green-mid: #3d5242;
+  /* Light olive DropZone — olive chrome + orange CTAs */
+  --dark: #2c3e2f;
+  --green: #3d5242;
+  --green-mid: #4f6754;
+  --olive-soft: #e4ebe4;
+  --olive-well: #d5e0d6;
   --orange: #e85d04;
   --orange-bright: #ff6b00;
-  --bg: #121a14;
-  --card: #1f2a22;
-  --text: #f5f5f5;
-  --muted: #a0a8a2;
+  --bg: #eef3ee;
+  --card: #ffffff;
+  --text: #1a241c;
+  --muted: #4a5a4e;
+  --border: #9eb0a2;
+  --search: #dfe8e0;
+  --phone-bezel: #2c3e2f;
+  --body-bg: #cfd9d1;
+  --live: #2f6b3c;
+  --nav-bg: #f7faf7;
+  --header-bg: #e6ede7;
 }
 
 * {
@@ -23,7 +33,7 @@ body {
 }
 
 body {
-  background: #0d1110;
+  background: var(--body-bg);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -44,7 +54,6 @@ select {
   font-family: inherit;
 }
 
-/* Phone frame — matches demo */
 .phone {
   width: 390px;
   max-width: 100vw;
@@ -53,9 +62,9 @@ select {
   background: var(--bg);
   border-radius: 40px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(26, 36, 28, 0.22);
   position: relative;
-  border: 12px solid #0a0e0b;
+  border: 12px solid var(--phone-bezel);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -76,36 +85,79 @@ select {
   }
 }
 
-.status-bar {
-  height: 44px;
-  flex-shrink: 0;
-  background: var(--dark);
-  color: white;
-  display: flex;
-  justify-content: space-between;
+.lang-toggle {
+  display: inline-flex;
   align-items: center;
-  padding: 0 20px;
-  font-size: 14px;
-  font-weight: 600;
+  gap: 4px;
+  background: var(--olive-well);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
 }
 
-.screen-area {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: 70px;
-  -webkit-overflow-scrolling: touch;
+.lang-toggle button {
+  background: none;
+  border: none;
+  color: var(--green-mid);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.lang-toggle button.active {
+  color: var(--orange);
+}
+
+.lang-sep {
+  color: var(--border);
+  font-size: 11px;
 }
 
 .header {
-  background: var(--dark);
-  padding: 8px 16px 16px;
+  background: var(--header-bg);
+  padding: 12px 16px 14px;
+  border-bottom: 2px solid var(--border);
+  position: relative;
+}
+
+.header-home {
+  text-align: center;
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+
+.header-lang-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.header-leading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.header-brand-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .logo {
   font-size: 32px;
   font-weight: 900;
   letter-spacing: -1px;
+  color: var(--text);
 }
 
 .logo span {
@@ -118,14 +170,40 @@ select {
   margin-top: 2px;
 }
 
+.brand-logo {
+  height: 118px;
+  width: auto;
+  max-width: 92%;
+  margin: 4px auto 4px;
+  display: block;
+  object-fit: contain;
+}
+
+.brand-logo-sm {
+  height: 44px;
+  width: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.screen-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 70px;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+}
+
 .search-bar {
-  margin: 0 16px 12px;
-  background: #2a352c;
+  margin: 12px 16px;
+  background: var(--search);
   border-radius: 14px;
   display: flex;
   align-items: center;
   padding: 12px 16px;
   gap: 10px;
+  border: 1.5px solid var(--border);
 }
 
 .search-bar input {
@@ -134,11 +212,11 @@ select {
   outline: none;
   flex: 1;
   font-size: 15px;
-  color: white;
+  color: var(--text);
 }
 
 .search-bar input::placeholder {
-  color: #7a857c;
+  color: var(--muted);
 }
 
 .categories {
@@ -165,17 +243,20 @@ select {
 .cat-icon {
   width: 52px;
   height: 52px;
-  background: var(--card);
+  background: var(--olive-well);
+  border: 1px solid var(--border);
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
   margin: 0 auto 6px;
+  box-shadow: 0 1px 3px rgba(44, 62, 47, 0.08);
 }
 
 .cat.active .cat-icon {
   background: var(--orange);
+  border-color: var(--orange);
 }
 
 .section-title {
@@ -185,6 +266,9 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: var(--dark);
+  border-bottom: 1px solid var(--olive-soft);
+  margin: 0 0 10px;
 }
 
 .section-title span {
@@ -207,11 +291,13 @@ select {
   cursor: pointer;
   color: inherit;
   display: block;
+  border: 1.5px solid var(--border);
+  box-shadow: 0 2px 8px rgba(44, 62, 47, 0.08);
 }
 
 .product-img {
   height: 100px;
-  background: #2a352c center/cover;
+  background: var(--olive-soft) center/cover;
 }
 
 .product-info {
@@ -224,6 +310,7 @@ select {
   line-height: 1.3;
   height: 34px;
   overflow: hidden;
+  color: var(--text);
 }
 
 .product-store {
@@ -262,19 +349,20 @@ select {
 }
 
 .store-chip {
-  background: var(--card);
-  border: 1px solid #3d5242;
+  background: var(--olive-soft);
+  border: 1.5px solid var(--border);
   border-radius: 20px;
   padding: 8px 14px;
   font-size: 12px;
   white-space: nowrap;
   cursor: pointer;
-  color: var(--text);
+  color: var(--dark);
 }
 
 .store-chip.active {
   background: var(--orange);
   border-color: var(--orange);
+  color: white;
 }
 
 .filter-row {
@@ -286,9 +374,9 @@ select {
 }
 
 .filter-row select {
-  background: var(--card);
-  color: white;
-  border: 1px solid #3d5242;
+  background: var(--olive-soft);
+  color: var(--dark);
+  border: 1.5px solid var(--border);
   border-radius: 10px;
   padding: 8px 10px;
   font-size: 13px;
@@ -308,7 +396,7 @@ select {
   border-radius: 12px;
   margin-bottom: 8px;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 1.5px solid var(--border);
   width: 100%;
   color: var(--text);
   text-align: left;
@@ -316,6 +404,7 @@ select {
 
 .option-row.selected {
   border-color: var(--orange);
+  box-shadow: 0 0 0 1px var(--orange);
 }
 
 .price-tag {
@@ -325,17 +414,19 @@ select {
 
 .driver-banner {
   margin: 8px 16px 16px;
-  background: var(--card);
+  background: var(--olive-soft);
   border-radius: 16px;
   padding: 14px;
   display: flex;
   gap: 12px;
   align-items: center;
+  border: 1.5px solid var(--border);
 }
 
 .driver-banner h3 {
   font-size: 15px;
   margin-bottom: 4px;
+  color: var(--text);
 }
 
 .driver-banner p {
@@ -361,11 +452,11 @@ select {
   left: 0;
   right: 0;
   height: 70px;
-  background: var(--dark);
+  background: var(--nav-bg);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  border-top: 1px solid #2a352c;
+  border-top: 2px solid var(--border);
   padding-bottom: 8px;
   z-index: 20;
 }
@@ -373,7 +464,7 @@ select {
 .nav-item {
   text-align: center;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--green-mid);
   cursor: pointer;
   background: none;
   border: none;
@@ -397,9 +488,10 @@ select {
 
 .detail-img {
   height: 200px;
-  background: #2a352c center/cover;
+  background: var(--search) center/cover;
   border-radius: 16px;
   margin-bottom: 16px;
+  border: 1px solid var(--border);
 }
 
 .add-btn {
@@ -425,6 +517,7 @@ select {
   display: flex;
   gap: 12px;
   align-items: center;
+  border: 1px solid var(--border);
 }
 
 .qty {
@@ -437,9 +530,9 @@ select {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid #3d5242;
-  background: var(--dark);
-  color: white;
+  border: 1px solid var(--border);
+  background: var(--search);
+  color: var(--text);
   cursor: pointer;
 }
 
@@ -469,13 +562,14 @@ select {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(232, 93, 4, 0.2), transparent 45%),
-    linear-gradient(225deg, rgba(61, 82, 66, 0.6), #1a2a20 70%);
+    linear-gradient(135deg, rgba(232, 93, 4, 0.15), transparent 45%),
+    linear-gradient(225deg, rgba(61, 82, 66, 0.2), #e8eee9 70%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--muted);
   font-size: 13px;
+  border: 1px solid var(--border);
 }
 
 .status-steps {
@@ -492,40 +586,46 @@ select {
   left: 15px;
   right: 15px;
   height: 3px;
-  background: #2a352c;
+  background: var(--border);
 }
 
 .step {
   text-align: center;
   z-index: 1;
   font-size: 11px;
+  color: var(--text);
 }
 
 .step-dot {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #2a352c;
+  background: var(--search);
+  border: 1px solid var(--border);
   margin: 0 auto 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text);
   font-size: 13px;
 }
 
 .step.done .step-dot {
-  background: #3d7a4a;
+  background: var(--live);
+  border-color: var(--live);
+  color: white;
 }
 
 .step.current .step-dot {
   background: var(--orange);
+  border-color: var(--orange);
+  color: white;
 }
 
 .tip-btn {
   background: var(--card);
-  color: white;
-  border: 1px solid #3d5242;
+  color: var(--text);
+  border: 1px solid var(--border);
   padding: 8px 14px;
   border-radius: 10px;
   font-weight: 600;
@@ -535,12 +635,13 @@ select {
 .tip-btn.selected {
   background: var(--orange);
   border-color: var(--orange);
+  color: white;
 }
 
 .back {
   background: none;
   border: none;
-  color: white;
+  color: var(--text);
   font-size: 20px;
   cursor: pointer;
 }
@@ -552,6 +653,7 @@ select {
   background: var(--card);
   border-radius: 12px;
   padding: 12px;
+  border: 1px solid var(--border);
 }
 
 .chat-bubble {
@@ -563,7 +665,9 @@ select {
 }
 
 .chat-bubble.them {
-  background: #2a352c;
+  background: var(--search);
+  color: var(--text);
+  border: 1px solid var(--border);
 }
 
 .chat-bubble.you {
@@ -576,18 +680,19 @@ select {
   padding: 12px 16px;
   display: flex;
   gap: 8px;
-  background: var(--dark);
+  background: var(--card);
+  border-top: 1px solid var(--border);
   position: sticky;
   bottom: 70px;
 }
 
 .chat-input-row input {
   flex: 1;
-  background: #2a352c;
-  border: none;
+  background: var(--search);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
-  color: white;
+  color: var(--text);
   outline: none;
 }
 
@@ -604,5 +709,28 @@ select {
 .empty-state {
   padding: 40px;
   text-align: center;
-  color: #7a857c;
+  color: var(--muted);
+}
+
+.soft-card {
+  background: var(--olive-soft);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+}
+
+.cart-item,
+.driver-card,
+.detail-img,
+.tip-btn,
+.chat-bubble.them,
+.chat-input-row input {
+  border-color: var(--border);
+}
+
+.qty button {
+  border-color: var(--border);
+  background: var(--olive-well);
+  color: var(--dark);
 }

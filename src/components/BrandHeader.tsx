@@ -1,50 +1,83 @@
+"use client";
+
 import Link from "next/link";
+import { LanguageToggle } from "./LanguageToggle";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+
+type TitleKey =
+  | "product"
+  | "yourCart"
+  | "pricingGuide"
+  | "liveDrop"
+  | "chatWithAlex";
 
 export function BrandHeader({
   title,
+  titleKey,
   showBack,
   backHref = "/",
   centerLogo,
 }: {
   title?: string;
+  titleKey?: TitleKey;
   showBack?: boolean;
   backHref?: string;
-  /** Home: logo image + tagline centered */
   centerLogo?: boolean;
 }) {
+  const { t } = useLocale();
+  const resolvedTitle = titleKey ? t[titleKey] : title;
+
   if (centerLogo) {
     return (
-      <div className="header" style={{ textAlign: "center", paddingBottom: 8 }}>
+      <div className="header header-home">
+        <div className="header-lang-row">
+          <LanguageToggle />
+        </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/dropzone-logo.jpg"
-          alt="DropZone"
-          style={{ height: 72, margin: "0 auto 2px", display: "block" }}
-        />
-        <div className="tagline" style={{ fontSize: 11 }}>
-          What you need. Where you need it.
+        <img src="/dropzone-logo.jpg" alt="DropZone" className="brand-logo" />
+        <div className="tagline" style={{ fontSize: 12 }}>
+          {t.tagline}
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="header"
-      style={showBack ? { display: "flex", alignItems: "center", gap: 10 } : undefined}
-    >
-      {showBack ? (
-        <Link href={backHref} className="back" aria-label="Back">
-          ←
-        </Link>
-      ) : null}
-      <div className="logo" style={showBack ? { fontSize: 22 } : undefined}>
-        {title ?? (
-          <>
-            Drop<span>Zone</span>
-          </>
+    <div className="header header-row">
+      <div className="header-leading">
+        {showBack ? (
+          <Link href={backHref} className="back" aria-label={t.back}>
+            ←
+          </Link>
+        ) : null}
+        {showBack ? (
+          <div className="logo" style={{ fontSize: 22 }}>
+            {resolvedTitle}
+          </div>
+        ) : (
+          <div className="header-brand-inline">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/dropzone-logo.jpg"
+              alt="DropZone"
+              className="brand-logo-sm"
+            />
+            <div>
+              <div className="logo" style={{ fontSize: 20, lineHeight: 1.1 }}>
+                {resolvedTitle ?? (
+                  <>
+                    Drop<span>Zone</span>
+                  </>
+                )}
+              </div>
+              <div className="tagline" style={{ fontSize: 10 }}>
+                {t.tagline}
+              </div>
+            </div>
+          </div>
         )}
       </div>
+      <LanguageToggle />
     </div>
   );
 }

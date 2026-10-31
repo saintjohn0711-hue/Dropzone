@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getProduct } from "@/data/products";
+import { resolveProduct } from "@/lib/resolve-product";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 type CartLine = { id: string; qty: number };
@@ -36,10 +36,12 @@ export function CartView() {
 
   const items = lines
     .map((l) => {
-      const p = getProduct(l.id);
+      const p = resolveProduct(l.id);
       return p ? { ...p, qty: l.qty } : null;
     })
-    .filter(Boolean) as Array<NonNullable<ReturnType<typeof getProduct>> & { qty: number }>;
+    .filter(Boolean) as Array<
+    NonNullable<ReturnType<typeof resolveProduct>> & { qty: number }
+  >;
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
 

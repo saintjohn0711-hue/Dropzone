@@ -5,13 +5,18 @@ import { useMemo, useState } from "react";
 import {
   categories,
   categoryIcons,
-  products,
   stores,
   type Product,
 } from "@/data/products";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
-export function HomeBrowse() {
+export function HomeBrowse({
+  products,
+  catalogSource = "seed",
+}: {
+  products: Product[];
+  catalogSource?: "supabase" | "seed";
+}) {
   const { t } = useLocale();
   const [category, setCategory] = useState<string>("All");
   const [storeId, setStoreId] = useState("all");
@@ -34,7 +39,7 @@ export function HomeBrowse() {
 
     if (showCount !== "all") list = list.slice(0, parseInt(showCount, 10));
     return list;
-  }, [category, storeId, query, sort, showCount]);
+  }, [products, category, storeId, query, sort, showCount]);
 
   return (
     <>
@@ -94,7 +99,10 @@ export function HomeBrowse() {
       </div>
 
       <div className="section-title">
-        {t.fastDropsNearYou} <span>{t.seeAll}</span>
+        {t.fastDropsNearYou}{" "}
+        <span>
+          {catalogSource === "supabase" ? t.liveOffers : t.demoCatalog} · {t.seeAll}
+        </span>
       </div>
 
       <div className="products">
@@ -127,9 +135,9 @@ export function HomeBrowse() {
           <h3>{t.driverTitle}</h3>
           <p>{t.driverBody}</p>
         </div>
-        <button type="button" className="driver-btn">
+        <Link href="/driver" className="driver-btn">
           {t.apply}
-        </button>
+        </Link>
       </div>
 
       <div

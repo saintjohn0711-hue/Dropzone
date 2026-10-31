@@ -5,8 +5,9 @@ export const runtime = "nodejs";
 
 /**
  * POST /api/inventory/scrub
- * Body: { source?: "seed" | "box-store-scrubber", storeSlug?: string, dryRun?: boolean, limit?: number }
- * Defaults to dryRun:true so the endpoint works without Supabase / scrubber keys.
+ * Body: { source?, storeSlug?, dryRun?, limit? }
+ * Sources: seed | box-store-scrubber | home-depot | lowes
+ * When SUPABASE_SERVICE_ROLE_KEY is set, omit dryRun (or dryRun:false) to upsert product_offers.
  */
 export async function POST(request: Request) {
   let body: {
@@ -22,13 +23,12 @@ export async function POST(request: Request) {
     body = {};
   }
 
-  const source = body.source ?? "seed";
-  const dryRun = body.dryRun !== false;
+  const source = body.source ?? "box-store-scrubber";
 
   try {
     const result = await runScrub(source, {
       storeSlug: body.storeSlug,
-      dryRun,
+      dryRun: body.dryRun,
       limit: body.limit ?? 25,
     });
 
@@ -42,18 +42,28 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Scrub failed";
-    return NextResponse.json({ ok: false, error: message, dryRun }, { status: 400 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+        hint: message.includes("schema") || message.includes("relation")
+          ? "Run supabase/migrations SQL in the DropZone SQL editor first."
+          : undefined,
+      },
+      { status: 400 },
+    );
   }
 }
 
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    usage: "POST with JSON { source, storeSlug, dryRun, limit }",
+    usage:
+      'POST JSON { "source":"home-depot"|"lowes"|"box-store-scrubber"|"seed", "storeSlug"?, "dryRun"?, "limit"? }',
     availableSources: getInventorySources().map((s) => ({
       id: s.id,
       label: s.label,
     })),
-    note: "dryRun defaults to true and works without Supabase or scrubber keys.",
+    note: "Omit dryRun (or set false) to upsert when SUPABASE_SERVICE_ROLE_KEY is configured.",
   });
 }

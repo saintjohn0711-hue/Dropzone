@@ -9,7 +9,9 @@ type TitleKey =
   | "yourCart"
   | "pricingGuide"
   | "liveDrop"
-  | "chatWithAlex";
+  | "chatWithAlex"
+  | "driverSignupNav"
+  | "driverDashboardNav";
 
 export function BrandHeader({
   title,

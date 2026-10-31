@@ -123,13 +123,12 @@ select {
 
 .header-home {
   text-align: center;
-  padding: 8px 12px 10px;
-  min-height: 280px;
+  padding: 28px 8px 14px;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
 }
 
 .header-lang-float {
@@ -190,9 +189,9 @@ select {
 }
 
 .brand-logo {
-  height: clamp(200px, 28vh, 248px);
+  height: clamp(240px, 34vh, 300px);
   width: auto;
-  max-width: 96%;
+  max-width: 98%;
   margin: 0 auto;
   display: block;
   object-fit: contain;

@@ -34,8 +34,11 @@ export function BrandHeader({
           <LanguageToggle />
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/dropzone-logo.jpg" alt="DropZone" className="brand-logo" />
-        <p className="tagline tagline-home">{t.tagline}</p>
+        <img
+          src="/dropzone-logo.jpg"
+          alt={`DropZone — ${t.tagline}`}
+          className="brand-logo"
+        />
       </div>
     );
   }

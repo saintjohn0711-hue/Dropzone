@@ -274,12 +274,14 @@ export function TrackingView() {
       <div className="soft-card" style={{ marginBottom: 12 }}>
         <strong>{t.deliveringTo}</strong>{" "}
         {order.delivery_address || t.jobsite}
-        <br />
-        <span style={{ color: "var(--muted)" }}>
-          {order.contact_name
-            ? `${t.checkoutContact}: ${order.contact_name}`
-            : t.contactAccess}
-        </span>
+        {order.contact_name ? (
+          <>
+            <br />
+            <span style={{ color: "var(--muted)" }}>
+              {t.checkoutContact}: {order.contact_name}
+            </span>
+          </>
+        ) : null}
         <br />
         <span style={{ color: "var(--muted)", fontSize: 12 }}>
           {t.orderId}: {order.id.slice(0, 8)}…

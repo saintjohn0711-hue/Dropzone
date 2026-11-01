@@ -244,6 +244,8 @@ export const dictionaries = {
     podCustomerTitle: "Proof of delivery",
     podCapturedAt: "Captured",
     podNoPreview: "Photo deferred / unavailable until storage SQL is applied.",
+    podDemoHint:
+      "POD demo job (dispatch SQL not applied). Capture a photo UI — paste supabase-dispatch.sql + supabase-pod.sql for live jobs.",
     trackPlaced: "Placed",
     trackAssigned: "Assigned",
     trackNeedOrder: "Add ?order=… to track a live drop after checkout.",
@@ -589,6 +591,8 @@ export const dictionaries = {
     podCustomerTitle: "Prueba de entrega",
     podCapturedAt: "Capturada",
     podNoPreview: "Foto no disponible hasta aplicar el SQL de almacenamiento.",
+    podDemoHint:
+      "Trabajo demo POD (falta SQL de despacho). Captura la UI — pega supabase-dispatch.sql + supabase-pod.sql para jobs reales.",
     trackPlaced: "Realizado",
     trackAssigned: "Asignado",
     trackNeedOrder: "Agrega ?order=… para rastrear una entrega tras el pago.",

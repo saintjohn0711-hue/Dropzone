@@ -125,6 +125,18 @@ export function TrackingView() {
   const { order, driver, map } = data;
   const current = order.step;
   const canceled = order.uiStatus === "canceled";
+  const podDemo = searchParams.get("podDemo") === "1";
+  const pod =
+    data.pod ||
+    (podDemo
+      ? {
+          status: "deferred",
+          path: null,
+          capturedAt: new Date().toISOString(),
+          imageUrl: null,
+          note: t.podNoPreview,
+        }
+      : null);
 
   return (
     <div className="tracking">
@@ -296,28 +308,26 @@ export function TrackingView() {
         </span>
       </div>
 
-      {data.pod ? (
+      {pod ? (
         <div className="soft-card pod-card" style={{ marginBottom: 12 }}>
           <strong>{t.podCustomerTitle}</strong>
           <p className="driver-note" style={{ marginTop: 6 }}>
-            {data.pod.capturedAt
-              ? `${t.podCapturedAt}: ${new Date(data.pod.capturedAt).toLocaleString()}`
+            {pod.capturedAt
+              ? `${t.podCapturedAt}: ${new Date(pod.capturedAt).toLocaleString()}`
               : t.podBadge}
-            {data.pod.status ? ` · ${data.pod.status}` : ""}
+            {pod.status ? ` · ${pod.status}` : ""}
           </p>
-          {data.pod.imageUrl ? (
+          {pod.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={data.pod.imageUrl}
+              src={pod.imageUrl}
               alt={t.podPreviewAlt}
               className="pod-thumb"
             />
           ) : (
             <div className="pod-placeholder">{t.podNoPreview}</div>
           )}
-          {data.pod.note ? (
-            <p className="driver-note">{data.pod.note}</p>
-          ) : null}
+          {pod.note ? <p className="driver-note">{pod.note}</p> : null}
         </div>
       ) : null}
 

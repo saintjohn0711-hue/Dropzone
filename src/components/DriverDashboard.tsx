@@ -247,6 +247,27 @@ export function DriverDashboard() {
     if (authed) loadJobs();
   }, [authed, loadJobs]);
 
+  // Soft demo job for POD UI when dispatch SQL not applied (?podDemo=1)
+  useEffect(() => {
+    if (!authed) return;
+    if (searchParams.get("podDemo") !== "1") return;
+    if (jobs.length > 0) return;
+    setJobs([
+      {
+        id: "00000000-pod0-demo-0000-000000000001",
+        status: "en_route",
+        uiStatus: "en_route",
+        delivery_address: "1234 Construction Way, Austin, TX",
+        contact_name: "Mike on site",
+        total_cents: 1847,
+        driver_accepted_at: new Date().toISOString(),
+        payment_status: "demo",
+      },
+    ]);
+    setJobsHint(t.podDemoHint);
+    setPodOrderId("00000000-pod0-demo-0000-000000000001");
+  }, [authed, jobs.length, searchParams, t.podDemoHint]);
+
   async function jobAction(
     orderId: string,
     action: "accept" | "start" | "complete",

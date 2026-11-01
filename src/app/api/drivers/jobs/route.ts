@@ -62,14 +62,37 @@ export async function GET(request: Request) {
     );
   }
 
-  const { data, error } = await client
-    .from("orders")
-    .select(
-      "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, pod_path, pod_captured_at, pod_status, dispatch_notes, created_at, updated_at",
-    )
-    .eq("assigned_driver_id", auth.driver.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  let data: Array<Record<string, unknown>> | null = null;
+  let error: { message: string } | null = null;
+  {
+    const full = await client
+      .from("orders")
+      .select(
+        "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, pod_path, pod_captured_at, pod_status, dispatch_notes, created_at, updated_at",
+      )
+      .eq("assigned_driver_id", auth.driver.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    data = (full.data as Array<Record<string, unknown>> | null) || null;
+    error = full.error;
+  }
+
+  let softHint: string | undefined;
+  if (error && error.message.toLowerCase().includes("column")) {
+    const mid = await client
+      .from("orders")
+      .select(
+        "id, status, total_cents, currency, delivery_address, contact_name, payment_status, assigned_driver_id, driver_accepted_at, created_at, updated_at",
+      )
+      .eq("assigned_driver_id", auth.driver.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (!mid.error) {
+      data = (mid.data as Array<Record<string, unknown>> | null) || null;
+      error = null;
+      softHint = "POD columns missing — run supabase-pod.sql (jobs still load).";
+    }
+  }
 
   if (error) {
     if (
@@ -91,8 +114,9 @@ export async function GET(request: Request) {
     ok: true,
     jobs: (data || []).map((o) => ({
       ...o,
-      uiStatus: normalizeOrderStatus(String(o.status)),
+      uiStatus: normalizeOrderStatus(String(o.status || "")),
     })),
+    hint: softHint,
     driver: { id: auth.driver.id, name: auth.driver.name, status: auth.driver.status },
   });
 }

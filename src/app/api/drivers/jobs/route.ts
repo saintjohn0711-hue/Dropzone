@@ -4,6 +4,7 @@ import {
   resolveDriverFromToken,
 } from "@/lib/driver-session";
 import { normalizeOrderStatus } from "@/lib/admin/constants";
+import { dataUrlToBlob, uploadProofOfDelivery } from "@/lib/pod-storage";
 import { getWriteClient, isMissingRelation } from "@/lib/supabase/write-client";
 
 export const runtime = "nodejs";
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
   const { data, error } = await client
     .from("orders")
     .select(
-      "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, dispatch_notes, created_at, updated_at",
+      "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, pod_path, pod_captured_at, pod_status, dispatch_notes, created_at, updated_at",
     )
     .eq("assigned_driver_id", auth.driver.id)
     .order("created_at", { ascending: false })
@@ -106,7 +107,13 @@ export async function PATCH(request: Request) {
     );
   }
 
-  let body: { orderId?: string; action?: "accept" | "start" | "complete" };
+  let body: {
+    orderId?: string;
+    action?: "accept" | "start" | "complete";
+    /** Optional proof-of-delivery image as data URL */
+    podPhotoDataUrl?: string;
+    podFileName?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -170,15 +177,42 @@ export async function PATCH(request: Request) {
 
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { updated_at: now };
+  let podMeta: {
+    status: string;
+    path: string | null;
+    capturedAt: string;
+    note?: string;
+    previewUrl?: string | null;
+  } | null = null;
+
   if (action === "accept") {
     patch.driver_accepted_at = now;
-    // stay assigned
   } else if (action === "start") {
     patch.driver_started_at = now;
     patch.status = "en_route";
   } else if (action === "complete") {
     patch.driver_completed_at = now;
     patch.status = "delivered";
+    const blob = dataUrlToBlob(body.podPhotoDataUrl);
+    const pod = await uploadProofOfDelivery(
+      client,
+      orderId,
+      blob,
+      body.podFileName,
+    );
+    podMeta = {
+      status: pod.status,
+      path: pod.path,
+      capturedAt: pod.capturedAt,
+      note: pod.note,
+      previewUrl: pod.previewUrl,
+    };
+    if (pod.status !== "none") {
+      patch.pod_captured_at = pod.capturedAt;
+      patch.pod_status = pod.status;
+      if (pod.path) patch.pod_path = pod.path;
+      if (pod.note) patch.pod_note = pod.note;
+    }
   } else {
     return NextResponse.json({ ok: false, error: "Unknown action" }, { status: 400 });
   }
@@ -192,7 +226,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
 
   if (result.error && result.error.message.toLowerCase().includes("column")) {
-    // Soft: only status
+    // Soft: strip POD / timestamp extras
     const softPatch: Record<string, unknown> = { updated_at: now };
     if (action === "start") softPatch.status = "en_route";
     if (action === "complete") softPatch.status = "delivered";
@@ -209,8 +243,12 @@ export async function PATCH(request: Request) {
           ...result.data,
           uiStatus: normalizeOrderStatus(String(result.data.status)),
         },
+        pod: podMeta,
         soft: true,
-        hint: "Timestamp columns missing — run supabase-dispatch.sql",
+        hint:
+          action === "complete"
+            ? "POD/timestamp columns missing — run supabase-dispatch.sql + supabase-pod.sql (delivery marked; photo may be deferred)"
+            : "Timestamp columns missing — run supabase-dispatch.sql",
       });
     }
   }
@@ -230,5 +268,6 @@ export async function PATCH(request: Request) {
           uiStatus: normalizeOrderStatus(String(result.data.status)),
         }
       : null,
+    pod: podMeta,
   });
 }

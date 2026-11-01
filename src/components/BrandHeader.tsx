@@ -14,7 +14,10 @@ type TitleKey =
   | "driverDashboardNav"
   | "driverLoginNav"
   | "checkoutNav"
-  | "orderConfirmNav";
+  | "orderConfirmNav"
+  | "customerLoginTitle"
+  | "customerAccountTitle"
+  | "customerOrderHistory";
 
 export function BrandHeader({
   title,

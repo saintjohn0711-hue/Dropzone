@@ -40,6 +40,13 @@ type TrackPayload = {
     imageUrl: string | null;
     address: string;
   };
+  pod?: {
+    status: string;
+    path: string | null;
+    capturedAt: string | null;
+    imageUrl: string | null;
+    note: string | null;
+  } | null;
   hint?: string;
   polledAt?: string;
 };
@@ -288,6 +295,31 @@ export function TrackingView() {
           {order.payment_status ? ` · ${t.payStatusLabel}: ${order.payment_status}` : ""}
         </span>
       </div>
+
+      {data.pod ? (
+        <div className="soft-card pod-card" style={{ marginBottom: 12 }}>
+          <strong>{t.podCustomerTitle}</strong>
+          <p className="driver-note" style={{ marginTop: 6 }}>
+            {data.pod.capturedAt
+              ? `${t.podCapturedAt}: ${new Date(data.pod.capturedAt).toLocaleString()}`
+              : t.podBadge}
+            {data.pod.status ? ` · ${data.pod.status}` : ""}
+          </p>
+          {data.pod.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={data.pod.imageUrl}
+              alt={t.podPreviewAlt}
+              className="pod-thumb"
+            />
+          ) : (
+            <div className="pod-placeholder">{t.podNoPreview}</div>
+          )}
+          {data.pod.note ? (
+            <p className="driver-note">{data.pod.note}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div style={{ marginBottom: 12 }}>
         <strong style={{ fontSize: 14 }}>{t.tipDriver}</strong>

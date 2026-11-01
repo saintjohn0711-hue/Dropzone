@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     deliveryAddress?: string;
     contactName?: string;
     contactEmail?: string;
+    customerId?: string;
     sessionKey?: string;
     /** demo | stripe — default stripe when configured */
     payMode?: "demo" | "stripe";
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
   const items = (body.items ?? []).filter((i) => i.qty > 0);
   const deliveryAddress = body.deliveryAddress?.trim();
   const contactName = body.contactName?.trim() || null;
-  const contactEmail = body.contactEmail?.trim() || null;
+  const contactEmail = body.contactEmail?.trim()?.toLowerCase() || null;
+  const customerId = body.customerId?.trim() || null;
 
   if (!items.length) {
     return NextResponse.json({ ok: false, error: "Cart is empty" }, { status: 400 });
@@ -168,11 +170,13 @@ export async function POST(request: Request) {
     currency: "USD",
     delivery_address: deliveryAddress,
     contact_name: contactName,
+    contact_email: contactEmail,
     vehicle_id: vehicleId,
     rush_id: rushId,
     session_key: sessionKey,
     payment_status: paymentStatus,
   };
+  if (customerId) orderRow.customer_id = customerId;
 
   let order: Record<string, unknown> | null = null;
   let orderHint: string | undefined = cartItemsHint;

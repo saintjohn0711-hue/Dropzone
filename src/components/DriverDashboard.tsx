@@ -43,10 +43,16 @@ export function DriverDashboard() {
       total_cents?: number | null;
       driver_accepted_at?: string | null;
       payment_status?: string | null;
+      pod_captured_at?: string | null;
+      pod_status?: string | null;
     }>
   >([]);
   const [jobsHint, setJobsHint] = useState<string | null>(null);
   const [jobBusy, setJobBusy] = useState<string | null>(null);
+  const [podOrderId, setPodOrderId] = useState<string | null>(null);
+  const [podPreview, setPodPreview] = useState<string | null>(null);
+  const [podFileName, setPodFileName] = useState<string | null>(null);
+  const [podNote, setPodNote] = useState<string | null>(null);
 
   const applyProfile = useCallback(
     (next: Driver, nextReviews: DriverReview[], local: boolean, hint?: string) => {
@@ -244,6 +250,8 @@ export function DriverDashboard() {
   async function jobAction(
     orderId: string,
     action: "accept" | "start" | "complete",
+    podPhotoDataUrl?: string | null,
+    podName?: string | null,
   ) {
     setJobBusy(orderId);
     setError(null);
@@ -251,12 +259,27 @@ export function DriverDashboard() {
       const res = await fetch("/api/drivers/jobs", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ orderId, action }),
+        body: JSON.stringify({
+          orderId,
+          action,
+          podPhotoDataUrl: podPhotoDataUrl || undefined,
+          podFileName: podName || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
         setError(json.hint ? `${json.error}\n${json.hint}` : json.error);
       } else {
+        if (action === "complete") {
+          setPodNote(
+            json.pod?.status === "stored"
+              ? t.podUploadStored
+              : json.pod?.note || json.hint || t.podUploadDeferred,
+          );
+          setPodOrderId(null);
+          setPodPreview(null);
+          setPodFileName(null);
+        }
         await loadJobs();
       }
     } catch {
@@ -264,6 +287,20 @@ export function DriverDashboard() {
     } finally {
       setJobBusy(null);
     }
+  }
+
+  function onPodFile(file: File | null) {
+    if (!file) {
+      setPodPreview(null);
+      setPodFileName(null);
+      return;
+    }
+    setPodFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPodPreview(typeof reader.result === "string" ? reader.result : null);
+    };
+    reader.readAsDataURL(file);
   }
 
   async function logout() {
@@ -482,14 +519,66 @@ export function DriverDashboard() {
                   className="driver-logout"
                   style={{ marginTop: 0 }}
                   disabled={jobBusy === job.id}
-                  onClick={() => jobAction(job.id, "complete")}
+                  onClick={() => setPodOrderId(job.id)}
                 >
                   {t.driverJobComplete}
                 </button>
               </div>
+              {job.pod_captured_at ? (
+                <p className="driver-note" style={{ marginTop: 8 }}>
+                  {t.podBadge} · {new Date(job.pod_captured_at).toLocaleString()}
+                  {job.pod_status ? ` · ${job.pod_status}` : ""}
+                </p>
+              ) : null}
+              {podOrderId === job.id ? (
+                <div className="pod-capture soft-card" style={{ marginTop: 10 }}>
+                  <strong>{t.podCaptureTitle}</strong>
+                  <p className="driver-note">{t.podCaptureLead}</p>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    onChange={(e) => onPodFile(e.target.files?.[0] || null)}
+                  />
+                  {podPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={podPreview}
+                      alt={t.podPreviewAlt}
+                      className="pod-thumb"
+                    />
+                  ) : null}
+                  <div className="driver-job-actions" style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="driver-submit"
+                      style={{ marginTop: 0 }}
+                      disabled={jobBusy === job.id}
+                      onClick={() =>
+                        jobAction(job.id, "complete", podPreview, podFileName)
+                      }
+                    >
+                      {t.podConfirmComplete}
+                    </button>
+                    <button
+                      type="button"
+                      className="driver-logout"
+                      style={{ marginTop: 0 }}
+                      onClick={() => {
+                        setPodOrderId(null);
+                        setPodPreview(null);
+                        setPodFileName(null);
+                      }}
+                    >
+                      {t.back}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ))
         )}
+        {podNote ? <p className="driver-note">{podNote}</p> : null}
       </section>
 
       <section className="driver-reviews">

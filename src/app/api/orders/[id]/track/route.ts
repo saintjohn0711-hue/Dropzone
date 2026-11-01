@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalizeOrderStatus } from "@/lib/admin/constants";
+import { signedPodUrl } from "@/lib/pod-storage";
 import { geocodeAddress, getMapMode, staticMapUrl } from "@/lib/tracking/map";
 import { orderToTrackingStep } from "@/lib/tracking/status";
 import { getWriteClient, isMissingRelation } from "@/lib/supabase/write-client";
@@ -23,6 +24,10 @@ type TrackOrderRow = {
   driver_accepted_at?: string | null;
   driver_started_at?: string | null;
   driver_completed_at?: string | null;
+  pod_path?: string | null;
+  pod_captured_at?: string | null;
+  pod_status?: string | null;
+  pod_note?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -38,7 +43,7 @@ export async function GET(request: Request, ctx: Ctx) {
   }
 
   const fullSelect =
-    "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, created_at, updated_at";
+    "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, pod_path, pod_captured_at, pod_status, pod_note, created_at, updated_at";
   const midSelect =
     "id, status, total_cents, currency, delivery_address, assigned_driver_id, payment_status, created_at, updated_at";
   const coreSelect =
@@ -139,6 +144,11 @@ export async function GET(request: Request, ctx: Ctx) {
     /* ignore missing table */
   }
 
+  const podPath = softOrder.pod_path || null;
+  const podCapturedAt = softOrder.pod_captured_at || null;
+  const podStatus = softOrder.pod_status || null;
+  const podImageUrl = podPath ? await signedPodUrl(client, podPath) : null;
+
   return NextResponse.json({
     ok: true,
     order: {
@@ -154,6 +164,16 @@ export async function GET(request: Request, ctx: Ctx) {
       imageUrl: mapImageUrl,
       address,
     },
+    pod:
+      podCapturedAt || podPath || podStatus
+        ? {
+            status: podStatus || (podPath ? "stored" : "deferred"),
+            path: podPath,
+            capturedAt: podCapturedAt,
+            imageUrl: podImageUrl,
+            note: softOrder.pod_note || null,
+          }
+        : null,
     events,
     hint,
     polledAt: new Date().toISOString(),

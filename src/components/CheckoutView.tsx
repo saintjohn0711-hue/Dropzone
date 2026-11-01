@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { getStoredCustomerId } from "@/lib/customer-session-client";
+import { localRememberOrder } from "@/lib/customers-local";
 import { resolveProduct } from "@/lib/resolve-product";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
@@ -48,6 +50,8 @@ export function CheckoutView() {
     try {
       const raw = localStorage.getItem("dz-cart");
       setLines(raw ? JSON.parse(raw) : []);
+      const savedAddr = localStorage.getItem("dz-checkout-address");
+      if (savedAddr) setAddress(savedAddr);
     } catch {
       setLines([]);
     }
@@ -100,6 +104,7 @@ export function CheckoutView() {
     setBusy(true);
     setError(null);
     try {
+      const customerId = getStoredCustomerId();
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,6 +112,7 @@ export function CheckoutView() {
           deliveryAddress: address,
           contactName: contact,
           contactEmail: email || undefined,
+          customerId: customerId || undefined,
           sessionKey: sessionKey(),
           payMode,
           items: items.map((i) => ({
@@ -130,6 +136,14 @@ export function CheckoutView() {
       }
 
       if (json.stripeMode) setStripeMode(json.stripeMode);
+
+      if (customerId && json.order?.id) {
+        try {
+          localRememberOrder(customerId, json.order.id);
+        } catch {
+          /* ignore */
+        }
+      }
 
       localStorage.setItem(
         "dz-last-order",

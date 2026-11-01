@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   let query = client
     .from("orders")
     .select(
-      "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, subtotal_cents, delivery_fee_cents, admin_notes, assigned_driver_id, created_at, updated_at",
+      "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, subtotal_cents, delivery_fee_cents, admin_notes, assigned_driver_id, payment_status, created_at, updated_at",
     )
     .order("created_at", { ascending: false })
     .limit(limit);

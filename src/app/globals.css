@@ -2120,3 +2120,82 @@ select {
   font-size: 13px;
   margin-bottom: 10px;
 }
+
+/* Payments */
+.pay-banner {
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pay-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.pay-banner.demo {
+  background: #fff4ec;
+  border: 1.5px solid #f0c2a0;
+  color: var(--dark);
+}
+.pay-banner.live {
+  background: #e3f3e6;
+  border: 1.5px solid #9ec9a8;
+  color: var(--dark);
+}
+.pay-banner p {
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Dispatch admin */
+.admin-dispatch-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+}
+
+/* Driver jobs */
+.driver-jobs {
+  margin: 16px 0;
+}
+.driver-jobs-refresh {
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--orange);
+}
+.driver-job-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.driver-job-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.driver-job-card p {
+  font-size: 13px;
+  color: var(--dark);
+  margin: 0 0 4px;
+}
+.driver-job-meta {
+  color: var(--muted) !important;
+  font-size: 12px !important;
+}
+.driver-job-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}

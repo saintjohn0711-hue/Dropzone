@@ -128,7 +128,23 @@ export async function POST(request: Request) {
     product_name: i.name,
   }));
 
-  const { error: itemsErr } = await client.from("cart_items").insert(lineRows);
+  let cartItemsHint: string | undefined;
+  let itemsErr = (await client.from("cart_items").insert(lineRows)).error;
+  if (itemsErr && itemsErr.message.toLowerCase().includes("column")) {
+    // Soft: base cart_items columns only
+    const basicLines = resolved.map((i) => ({
+      cart_id: cart.id,
+      sku: i.sku,
+      qty: i.qty,
+      vehicle_id: i.vehicleId,
+      rush_id: i.rushId,
+    }));
+    itemsErr = (await client.from("cart_items").insert(basicLines)).error;
+    if (!itemsErr) {
+      cartItemsHint =
+        "cart_items missing unit_price_cents/product_name — run supabase-checkout.sql";
+    }
+  }
   if (itemsErr) {
     return NextResponse.json(
       {
@@ -159,7 +175,7 @@ export async function POST(request: Request) {
   };
 
   let order: Record<string, unknown> | null = null;
-  let orderHint: string | undefined;
+  let orderHint: string | undefined = cartItemsHint;
 
   {
     const { data, error } = await client

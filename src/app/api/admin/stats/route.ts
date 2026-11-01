@@ -30,19 +30,37 @@ export async function GET(request: Request) {
     hints: [] as string[],
   };
 
-  const drivers = await client.from("drivers").select("id, status, application_status");
+  let drivers = await client
+    .from("drivers")
+    .select("id, status, application_status");
   if (drivers.error) {
-    if (isMissingRelation(drivers.error)) {
-      stats.hints.push("Run supabase-drivers.sql");
+    // Soft: application_status may be missing until supabase-admin.sql
+    drivers = await client.from("drivers").select("id, status");
+    if (drivers.error) {
+      if (isMissingRelation(drivers.error)) {
+        stats.hints.push("Run supabase-drivers.sql");
+      } else {
+        stats.hints.push(drivers.error.message);
+      }
     } else {
-      stats.hints.push(drivers.error.message);
+      stats.hints.push(
+        "application_status missing — run supabase-admin.sql for pending counts",
+      );
     }
-  } else {
-    const rows = drivers.data || [];
+  }
+  if (!drivers.error) {
+    const rows = (drivers.data || []) as Array<{
+      id: string;
+      status?: string;
+      application_status?: string | null;
+    }>;
     stats.driversTotal = rows.length;
     stats.driversActive = rows.filter((d) => d.status === "active").length;
     stats.driversPending = rows.filter(
-      (d) => !d.application_status || d.application_status === "pending",
+      (d) =>
+        !("application_status" in d) ||
+        !d.application_status ||
+        d.application_status === "pending",
     ).length;
   }
 

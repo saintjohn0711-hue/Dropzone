@@ -18,6 +18,14 @@ export type ScrubOptions = {
   limit?: number;
 };
 
+export type StoreConnectionMeta = {
+  mode: string;
+  connected: boolean;
+  label: string;
+  message: string;
+  envMissing?: string[];
+};
+
 export type ScrubResult = {
   source: string;
   dryRun: boolean;
@@ -25,13 +33,9 @@ export type ScrubResult = {
   persisted: number;
   message: string;
   /** Home Depot connection diagnostics when HD was part of the scrub */
-  homeDepot?: {
-    mode: string;
-    connected: boolean;
-    label: string;
-    message: string;
-    envMissing?: string[];
-  };
+  homeDepot?: StoreConnectionMeta;
+  /** Lowe's connection diagnostics when Lowe's was part of the scrub */
+  lowes?: StoreConnectionMeta;
 };
 
 export interface StoreInventorySource {

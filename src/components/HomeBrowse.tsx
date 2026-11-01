@@ -32,16 +32,29 @@ export function HomeBrowse({
     mode: string;
     message: string;
   } | null>(null);
+  const [lwStatus, setLwStatus] = useState<{
+    connected: boolean;
+    mode: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
-    void fetch("/api/inventory/home-depot/status")
-      .then((r) => r.json())
-      .then((j) => {
-        if (j?.ok)
+    void Promise.all([
+      fetch("/api/inventory/home-depot/status").then((r) => r.json()),
+      fetch("/api/inventory/lowes/status").then((r) => r.json()),
+    ])
+      .then(([hd, lw]) => {
+        if (hd?.ok)
           setHdStatus({
-            connected: Boolean(j.connected),
-            mode: String(j.mode || "starter"),
-            message: String(j.message || ""),
+            connected: Boolean(hd.connected),
+            mode: String(hd.mode || "starter"),
+            message: String(hd.message || ""),
+          });
+        if (lw?.ok)
+          setLwStatus({
+            connected: Boolean(lw.connected),
+            mode: String(lw.mode || "starter"),
+            message: String(lw.message || ""),
           });
       })
       .catch(() => null);
@@ -59,6 +72,7 @@ export function HomeBrowse({
       const json = await res.json();
       if (res.ok && json.ok) {
         const hd = json.scrub?.homeDepot || json.homeDepot;
+        const lw = json.scrub?.lowes || json.lowes;
         if (hd) {
           setHdStatus({
             connected: Boolean(hd.connected),
@@ -66,17 +80,29 @@ export function HomeBrowse({
             message: String(hd.message || ""),
           });
         }
+        if (lw) {
+          setLwStatus({
+            connected: Boolean(lw.connected),
+            mode: String(lw.mode || "starter"),
+            message: String(lw.message || ""),
+          });
+        }
         const base = t.inventoryRefreshed.replace(
           "{n}",
           String(json.scrub?.persisted ?? 0),
         );
-        setRefreshMsg(
-          hd && !hd.connected
-            ? `${base} · ${t.inventoryHdNotConnected}`
-            : hd?.connected
-              ? `${base} · ${t.inventoryHdConnected}`
-              : base,
-        );
+        const bits = [base];
+        if (hd) {
+          bits.push(
+            hd.connected ? t.inventoryHdConnected : t.inventoryHdNotConnected,
+          );
+        }
+        if (lw) {
+          bits.push(
+            lw.connected ? t.inventoryLwConnected : t.inventoryLwNotConnected,
+          );
+        }
+        setRefreshMsg(bits.join(" · "));
         router.refresh();
       } else {
         setRefreshMsg(json.error || t.inventoryRefreshError);
@@ -184,6 +210,14 @@ export function HomeBrowse({
             title={hdStatus.message}
           >
             {hdStatus.connected ? t.inventoryHdConnected : t.inventoryHdConnect}
+          </span>
+        ) : null}
+        {lwStatus ? (
+          <span
+            className={`inventory-hd-pill ${lwStatus.connected ? "on" : "off"}`}
+            title={lwStatus.message}
+          >
+            {lwStatus.connected ? t.inventoryLwConnected : t.inventoryLwConnect}
           </span>
         ) : null}
         {refreshMsg ? <span className="inventory-refresh-msg">{refreshMsg}</span> : null}

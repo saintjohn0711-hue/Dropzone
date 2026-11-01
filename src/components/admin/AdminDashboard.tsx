@@ -13,7 +13,7 @@ type Stats = {
   hints?: string[];
 };
 
-type HdStatus = {
+type StoreStatus = {
   connected: boolean;
   mode: string;
   label: string;
@@ -23,7 +23,8 @@ type HdStatus = {
 
 export function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [hd, setHd] = useState<HdStatus | null>(null);
+  const [hd, setHd] = useState<StoreStatus | null>(null);
+  const [lw, setLw] = useState<StoreStatus | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +40,10 @@ export function AdminDashboard() {
       const hJson = await hRes.json();
       if (sRes.ok && sJson.ok) setStats(sJson.stats);
       else setError(sJson.error || "Could not load stats");
-      if (hRes.ok && hJson.ok) setHd(hJson.homeDepot);
+      if (hRes.ok && hJson.ok) {
+        setHd(hJson.homeDepot);
+        setLw(hJson.lowes);
+      }
     } catch {
       setError("Could not load admin overview");
     }
@@ -65,6 +69,7 @@ export function AdminDashboard() {
             `Refreshed · persisted ${json.scrub?.persisted ?? 0}`,
         );
         if (json.homeDepot) setHd(json.homeDepot);
+        if (json.lowes) setLw(json.lowes);
       }
     } catch {
       setMsg("Refresh failed");
@@ -122,6 +127,18 @@ export function AdminDashboard() {
           </div>
         ) : (
           <p className="admin-muted">Loading Home Depot status…</p>
+        )}
+        {lw ? (
+          <div className="admin-hd-row">
+            <span className={`admin-pill ${lw.connected ? "on" : "off"}`}>
+              {lw.connected ? "Lowe's feed live" : "Connect Lowe's"}
+            </span>
+            <p>
+              <strong>{lw.label}</strong> — {lw.message}
+            </p>
+          </div>
+        ) : (
+          <p className="admin-muted">Loading Lowe&apos;s status…</p>
         )}
         {msg ? <p className="admin-note">{msg}</p> : null}
       </section>

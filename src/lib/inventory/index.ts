@@ -2,12 +2,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { BoxStoreScrubberSource } from "./box-store-scrubber";
 import { getHomeDepotConnectionStatus } from "./home-depot-connection";
 import { HomeDepotInventorySource } from "./home-depot-source";
+import { getLowesConnectionStatus } from "./lowes-connection";
 import { LowesInventorySource } from "./lowes-source";
 import { SeedInventorySource } from "./seed-source";
 import type {
   InventoryOffer,
   ScrubOptions,
   ScrubResult,
+  StoreConnectionMeta,
   StoreInventorySource,
 } from "./types";
 
@@ -19,6 +21,7 @@ export {
   LowesInventorySource,
 };
 export { getHomeDepotConnectionStatus } from "./home-depot-connection";
+export { getLowesConnectionStatus } from "./lowes-connection";
 
 export function getInventorySources(): StoreInventorySource[] {
   return [
@@ -44,12 +47,20 @@ export async function runScrub(
   const offers = await source.fetchOffers(options);
 
   const hdStatus = getHomeDepotConnectionStatus();
-  let hdMeta = {
+  const lwStatus = getLowesConnectionStatus();
+  let hdMeta: StoreConnectionMeta = {
     mode: hdStatus.mode,
     connected: hdStatus.connected,
     label: hdStatus.label,
     message: hdStatus.message,
     envMissing: hdStatus.envMissing,
+  };
+  let lwMeta: StoreConnectionMeta = {
+    mode: lwStatus.mode,
+    connected: lwStatus.connected,
+    label: lwStatus.label,
+    message: lwStatus.message,
+    envMissing: lwStatus.envMissing,
   };
   if (source instanceof HomeDepotInventorySource) {
     hdMeta = {
@@ -60,21 +71,53 @@ export async function runScrub(
       envMissing: hdStatus.envMissing,
     };
   }
+  if (source instanceof LowesInventorySource) {
+    lwMeta = {
+      mode: source.lastMeta.mode,
+      connected: source.lastMeta.connected,
+      label: lwStatus.label,
+      message: source.lastMeta.message,
+      envMissing: lwStatus.envMissing,
+    };
+  }
+  if (source instanceof BoxStoreScrubberSource) {
+    // Combined scrub — keep both connection snapshots from status helpers
+  }
 
   let persisted = 0;
   let message = dryRun
     ? `Dry-run: ${offers.length} offer(s) from ${source.id} (not written).`
     : `Fetched ${offers.length} offer(s) from ${source.id}.`;
 
-  if (!hdStatus.connected && (sourceId === "home-depot" || sourceId === "box-store-scrubber")) {
+  if (
+    !hdStatus.connected &&
+    (sourceId === "home-depot" || sourceId === "box-store-scrubber")
+  ) {
     message += ` HD: ${hdStatus.message}`;
+  }
+  if (
+    !lwStatus.connected &&
+    (sourceId === "lowes" || sourceId === "box-store-scrubber")
+  ) {
+    message += ` Lowe's: ${lwStatus.message}`;
   }
 
   if (!dryRun && offers.length > 0) {
     persisted = await persistOffers(offers);
     message = `Persisted ${persisted} offer(s) from ${source.id}.`;
-    if (!hdStatus.connected && (sourceId === "home-depot" || sourceId === "box-store-scrubber")) {
-      message += " (HD portion from starter SKUs until Impact/partner keys are set.)";
+    if (
+      !hdStatus.connected &&
+      (sourceId === "home-depot" || sourceId === "box-store-scrubber")
+    ) {
+      message +=
+        " (HD portion from starter SKUs until Impact/partner keys are set.)";
+    }
+    if (
+      !lwStatus.connected &&
+      (sourceId === "lowes" || sourceId === "box-store-scrubber")
+    ) {
+      message +=
+        " (Lowe's portion from starter SKUs until Impact/partner keys are set.)";
     }
   } else if (!dryRun && !admin) {
     message +=
@@ -88,6 +131,7 @@ export async function runScrub(
     persisted,
     message,
     homeDepot: hdMeta,
+    lowes: lwMeta,
   };
 }
 

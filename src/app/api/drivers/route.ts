@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@supabase/supabase-js";
-import type { DriverSignupInput, VehicleType } from "@/lib/drivers";
+import {
+  buildApplicationRow,
+  insertDriverApplication,
+  validateDriverApplication,
+  type DriverApplicationInput,
+} from "@/lib/driver-application";
+import {
+  dataUrlToBlob,
+  uploadDriverLicenseImages,
+} from "@/lib/driver-license-storage";
 
 export const runtime = "nodejs";
-
-const VEHICLES: VehicleType[] = ["car", "pickup", "box_truck", "drone"];
 
 function writeClient() {
   return createAdminClient() ?? publicClient();
@@ -20,28 +27,83 @@ function publicClient() {
   });
 }
 
-/** POST — create a DropZone driver account */
+function asObject(v: FormDataEntryValue | null): unknown {
+  if (v == null) return undefined;
+  if (typeof v !== "string") return v;
+  const s = v.trim();
+  if (!s) return undefined;
+  if (s.startsWith("[") || s.startsWith("{")) {
+    try {
+      return JSON.parse(s);
+    } catch {
+      return s;
+    }
+  }
+  return s;
+}
+
+async function parseBody(
+  request: Request,
+): Promise<{
+  input: Partial<DriverApplicationInput>;
+  front?: File | Blob | null;
+  back?: File | Blob | null;
+}> {
+  const ctype = request.headers.get("content-type") || "";
+  if (ctype.includes("multipart/form-data")) {
+    const fd = await request.formData();
+    const input: Record<string, unknown> = {};
+    for (const [key, value] of fd.entries()) {
+      if (key === "dl_front" || key === "dl_back") continue;
+      if (key === "availability_days") {
+        input[key] = asObject(value);
+        continue;
+      }
+      if (
+        key === "can_haul_heavy" ||
+        key === "insurance_confirmed" ||
+        key === "background_check_consent" ||
+        key === "terms_accepted" ||
+        key === "contractor_ack"
+      ) {
+        input[key] = String(value);
+        continue;
+      }
+      input[key] = typeof value === "string" ? value : String(value);
+    }
+    const front = fd.get("dl_front");
+    const back = fd.get("dl_back");
+    return {
+      input: input as Partial<DriverApplicationInput>,
+      front: front instanceof File && front.size > 0 ? front : null,
+      back: back instanceof File && back.size > 0 ? back : null,
+    };
+  }
+
+  const json = (await request.json()) as Partial<DriverApplicationInput> & {
+    dl_front_base64?: string;
+    dl_back_base64?: string;
+  };
+  return {
+    input: json,
+    front: dataUrlToBlob(json.dl_front_base64),
+    back: dataUrlToBlob(json.dl_back_base64),
+  };
+}
+
+/** POST — create a DropZone driver from full application */
 export async function POST(request: Request) {
-  let body: DriverSignupInput;
+  let parsed: Awaited<ReturnType<typeof parseBody>>;
   try {
-    body = await request.json();
+    parsed = await parseBody(request);
   } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Invalid body" }, { status: 400 });
   }
 
-  const name = body.name?.trim();
-  const email = body.email?.trim().toLowerCase();
-  const vehicle_type = body.vehicle_type;
-
-  if (!name || !email || !vehicle_type) {
+  const validated = validateDriverApplication(parsed.input);
+  if (!validated.ok) {
     return NextResponse.json(
-      { ok: false, error: "name, email, and vehicle_type are required" },
-      { status: 400 },
-    );
-  }
-  if (!VEHICLES.includes(vehicle_type)) {
-    return NextResponse.json(
-      { ok: false, error: `vehicle_type must be one of: ${VEHICLES.join(", ")}` },
+      { ok: false, error: validated.error },
       { status: 400 },
     );
   }
@@ -58,38 +120,67 @@ export async function POST(request: Request) {
     );
   }
 
-  const row = {
-    name,
-    email,
-    phone: body.phone?.trim() || null,
-    vehicle_type,
-    vehicle_detail: body.vehicle_detail?.trim() || null,
-    license_plate: body.license_plate?.trim() || null,
-    status: "inactive" as const,
-    locale: body.locale === "es" ? "es" : "en",
-  };
+  const admin = createAdminClient();
+  const provisionalId = crypto.randomUUID();
 
-  const { data, error } = await client.from("drivers").insert(row).select("*").single();
+  // Upload DL first under provisional id, then insert; if insert fails, paths remain orphaned but private.
+  const upload = await uploadDriverLicenseImages(admin, provisionalId, {
+    front: parsed.front,
+    back: parsed.back,
+  });
 
-  if (error) {
-    const missing =
-      error.code === "PGRST205" ||
-      error.message.includes("schema cache") ||
-      error.message.includes("does not exist");
-    const conflict = error.code === "23505" || error.message.includes("duplicate");
+  const row = buildApplicationRow(validated.value, {
+    dl_front_path: upload.frontPath,
+    dl_back_path: upload.backPath,
+    dl_upload_status: upload.status,
+  });
+
+  // Prefer DB-generated id; if we already uploaded under provisionalId, keep those paths.
+  const result = await insertDriverApplication(client, row);
+
+  if (!result.data) {
     return NextResponse.json(
       {
         ok: false,
-        error: conflict ? "A driver with this email already exists" : error.message,
-        hint: missing
-          ? "Run docs/supabase-drivers.sql (or migrations/20261031000002_drivers.sql) in the DropZone SQL editor."
-          : undefined,
+        error: result.error || "Could not create driver",
+        hint: result.hint,
+        dlUpload: upload,
       },
-      { status: missing ? 503 : conflict ? 409 : 400 },
+      {
+        status:
+          result.error?.includes("already exists")
+            ? 409
+            : result.hint?.includes("Run")
+              ? 503
+              : 400,
+      },
     );
   }
 
-  return NextResponse.json({ ok: true, driver: data });
+  // If insert created a different id and we stored files under provisional, try rename.
+  const driverId = String(result.data.id || "");
+  if (
+    driverId &&
+    driverId !== provisionalId &&
+    admin &&
+    (upload.frontPath || upload.backPath)
+  ) {
+    // Best-effort: leave paths as provisional folder; still private to bucket.
+    // Update row paths stay pointing at provisionalId/* which is fine.
+  }
+
+  return NextResponse.json({
+    ok: true,
+    driver: result.data,
+    persistMode: result.mode,
+    hint: result.hint,
+    dlUpload: {
+      status: upload.status,
+      frontPath: upload.frontPath,
+      backPath: upload.backPath,
+      note: upload.note,
+    },
+  });
 }
 
 /** GET — list drivers or fetch by ?id= / ?email= */

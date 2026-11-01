@@ -33,6 +33,20 @@ export function DriverDashboard() {
   const [localMode, setLocalMode] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [jobs, setJobs] = useState<
+    Array<{
+      id: string;
+      status: string;
+      uiStatus?: string;
+      delivery_address?: string | null;
+      contact_name?: string | null;
+      total_cents?: number | null;
+      driver_accepted_at?: string | null;
+      payment_status?: string | null;
+    }>
+  >([]);
+  const [jobsHint, setJobsHint] = useState<string | null>(null);
+  const [jobBusy, setJobBusy] = useState<string | null>(null);
 
   const applyProfile = useCallback(
     (next: Driver, nextReviews: DriverReview[], local: boolean, hint?: string) => {
@@ -207,6 +221,51 @@ export function DriverDashboard() {
     }
   }
 
+  const loadJobs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/drivers/jobs", { headers: authHeaders() });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        setJobs(json.jobs || []);
+        setJobsHint(json.hint || null);
+      } else {
+        setJobs([]);
+        setJobsHint(json.hint || json.error || null);
+      }
+    } catch {
+      setJobsHint(t.driverJobsHint);
+    }
+  }, [t.driverJobsHint]);
+
+  useEffect(() => {
+    if (authed) loadJobs();
+  }, [authed, loadJobs]);
+
+  async function jobAction(
+    orderId: string,
+    action: "accept" | "start" | "complete",
+  ) {
+    setJobBusy(orderId);
+    setError(null);
+    try {
+      const res = await fetch("/api/drivers/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ orderId, action }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setError(json.hint ? `${json.error}\n${json.hint}` : json.error);
+      } else {
+        await loadJobs();
+      }
+    } catch {
+      setError(t.driverLoadError);
+    } finally {
+      setJobBusy(null);
+    }
+  }
+
   async function logout() {
     try {
       await fetch("/api/drivers/logout", {
@@ -224,6 +283,8 @@ export function DriverDashboard() {
 
   function vehicleLabel(type: string) {
     if (type === "car") return t.vehicleCar;
+    if (type === "suv") return t.vehicleSuv;
+    if (type === "van") return t.vehicleVan;
     if (type === "pickup") return t.vehiclePickup;
     if (type === "box_truck") return t.vehicleBox;
     if (type === "drone") return t.vehicleDrone;
@@ -359,6 +420,77 @@ export function DriverDashboard() {
           </span>
         </button>
       </div>
+
+      <section className="driver-jobs">
+        <div className="driver-reviews-head">
+          <h3>{t.driverJobsTitle}</h3>
+          <button
+            type="button"
+            className="driver-jobs-refresh"
+            onClick={loadJobs}
+          >
+            Refresh
+          </button>
+        </div>
+        {jobsHint ? <p className="driver-note">{jobsHint}</p> : null}
+        {jobs.length === 0 ? (
+          <p className="driver-reviews-empty">{t.driverJobsEmpty}</p>
+        ) : (
+          jobs.map((job) => (
+            <div key={job.id} className="driver-job-card">
+              <div className="driver-job-top">
+                <strong>#{job.id.slice(0, 8)}</strong>
+                <span className="driver-status-pill inactive">
+                  {job.uiStatus || job.status}
+                </span>
+              </div>
+              <p>{job.delivery_address || "—"}</p>
+              <p className="driver-job-meta">
+                {job.contact_name || "—"}
+                {job.total_cents != null
+                  ? ` · $${(job.total_cents / 100).toFixed(2)}`
+                  : ""}
+                {job.payment_status ? ` · pay ${job.payment_status}` : ""}
+              </p>
+              <div className="driver-job-actions">
+                {!job.driver_accepted_at ? (
+                  <button
+                    type="button"
+                    className="driver-submit"
+                    style={{ marginTop: 0 }}
+                    disabled={jobBusy === job.id}
+                    onClick={() => jobAction(job.id, "accept")}
+                  >
+                    {t.driverJobAccept}
+                  </button>
+                ) : (
+                  <span className="driver-note" style={{ margin: 0 }}>
+                    {t.driverJobAccepted}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="driver-logout"
+                  style={{ marginTop: 0 }}
+                  disabled={jobBusy === job.id}
+                  onClick={() => jobAction(job.id, "start")}
+                >
+                  {t.driverJobStart}
+                </button>
+                <button
+                  type="button"
+                  className="driver-logout"
+                  style={{ marginTop: 0 }}
+                  disabled={jobBusy === job.id}
+                  onClick={() => jobAction(job.id, "complete")}
+                >
+                  {t.driverJobComplete}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </section>
 
       <section className="driver-reviews">
         <div className="driver-reviews-head">

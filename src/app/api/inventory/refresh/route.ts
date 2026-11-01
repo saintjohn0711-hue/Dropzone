@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getHomeDepotConnectionStatus, runScrub } from "@/lib/inventory";
+import {
+  getHomeDepotConnectionStatus,
+  getLowesConnectionStatus,
+  runScrub,
+} from "@/lib/inventory";
 import { getWriteClient, isMissingRelation } from "@/lib/supabase/write-client";
 
 export const runtime = "nodejs";
@@ -61,6 +65,7 @@ export async function POST(request: Request) {
       storesNote,
       scrub: result,
       homeDepot: result.homeDepot ?? getHomeDepotConnectionStatus(),
+      lowes: result.lowes ?? getLowesConnectionStatus(),
       note: "Structured Home Depot / Lowe's adapters (Impact feed, partner API, or starter SKUs). No HTML scrape.",
     });
   } catch (err) {

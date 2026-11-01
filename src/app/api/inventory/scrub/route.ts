@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getHomeDepotConnectionStatus,
   getInventorySources,
+  getLowesConnectionStatus,
   runScrub,
 } from "@/lib/inventory";
 
@@ -69,6 +70,7 @@ export async function GET() {
       label: s.label,
     })),
     homeDepot: getHomeDepotConnectionStatus(),
-    note: "Omit dryRun (or set false) to upsert when SUPABASE_SERVICE_ROLE_KEY is configured. HD: Impact feed or partner API — see docs/home-depot-inventory.md",
+    lowes: getLowesConnectionStatus(),
+    note: "Omit dryRun (or set false) to upsert when SUPABASE_SERVICE_ROLE_KEY is configured. HD/Lowe's: Impact feed or partner API — see docs.",
   });
 }

@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { resolveProduct } from "@/lib/resolve-product";
+import {
+  createCheckoutSession,
+  getStripeMode,
+} from "@/lib/payments/stripe";
+import { updateOrderPayment } from "@/lib/payments/order-payment";
 import { getWriteClient, isMissingRelation } from "@/lib/supabase/write-client";
 
 export const runtime = "nodejs";
@@ -23,13 +28,17 @@ function deliveryFeeCents(vehicleId?: string, rushId?: string): number {
   return fee;
 }
 
-/** POST — create cart + cart_items + order in Supabase */
+/** POST — create cart + order, then Stripe Checkout (or demo pay) */
 export async function POST(request: Request) {
   let body: {
     items?: CheckoutLine[];
     deliveryAddress?: string;
     contactName?: string;
+    contactEmail?: string;
+    customerId?: string;
     sessionKey?: string;
+    /** demo | stripe — default stripe when configured */
+    payMode?: "demo" | "stripe";
   };
   try {
     body = await request.json();
@@ -40,6 +49,8 @@ export async function POST(request: Request) {
   const items = (body.items ?? []).filter((i) => i.qty > 0);
   const deliveryAddress = body.deliveryAddress?.trim();
   const contactName = body.contactName?.trim() || null;
+  const contactEmail = body.contactEmail?.trim()?.toLowerCase() || null;
+  const customerId = body.customerId?.trim() || null;
 
   if (!items.length) {
     return NextResponse.json({ ok: false, error: "Cart is empty" }, { status: 400 });
@@ -74,6 +85,9 @@ export async function POST(request: Request) {
   const feeCents = deliveryFeeCents(vehicleId, rushId);
   const totalCents = subtotalCents + feeCents;
   const sessionKey = body.sessionKey?.trim() || `guest-${Date.now()}`;
+  const stripeMode = getStripeMode();
+  const wantStripe =
+    body.payMode !== "demo" && stripeMode.configured;
 
   const client = getWriteClient();
   if (!client) {
@@ -116,7 +130,23 @@ export async function POST(request: Request) {
     product_name: i.name,
   }));
 
-  const { error: itemsErr } = await client.from("cart_items").insert(lineRows);
+  let cartItemsHint: string | undefined;
+  let itemsErr = (await client.from("cart_items").insert(lineRows)).error;
+  if (itemsErr && itemsErr.message.toLowerCase().includes("column")) {
+    // Soft: base cart_items columns only
+    const basicLines = resolved.map((i) => ({
+      cart_id: cart.id,
+      sku: i.sku,
+      qty: i.qty,
+      vehicle_id: i.vehicleId,
+      rush_id: i.rushId,
+    }));
+    itemsErr = (await client.from("cart_items").insert(basicLines)).error;
+    if (!itemsErr) {
+      cartItemsHint =
+        "cart_items missing unit_price_cents/product_name — run supabase-checkout.sql";
+    }
+  }
   if (itemsErr) {
     return NextResponse.json(
       {
@@ -130,7 +160,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const orderRow = {
+  const paymentStatus = wantStripe ? "pending" : "demo";
+  const orderRow: Record<string, unknown> = {
     cart_id: cart.id,
     status: "pending",
     total_cents: totalCents,
@@ -139,75 +170,145 @@ export async function POST(request: Request) {
     currency: "USD",
     delivery_address: deliveryAddress,
     contact_name: contactName,
+    contact_email: contactEmail,
     vehicle_id: vehicleId,
     rush_id: rushId,
     session_key: sessionKey,
+    payment_status: paymentStatus,
   };
+  if (customerId) orderRow.customer_id = customerId;
 
-  const { data: order, error: orderErr } = await client
-    .from("orders")
-    .insert(orderRow)
-    .select("*")
-    .single();
+  let order: Record<string, unknown> | null = null;
+  let orderHint: string | undefined = cartItemsHint;
 
-  if (orderErr || !order) {
-    // Fallback without extra columns if migration not applied
-    const { data: basic, error: basicErr } = await client
+  {
+    const { data, error } = await client
       .from("orders")
-      .insert({
-        cart_id: cart.id,
-        status: "pending",
-        total_cents: totalCents,
-        currency: "USD",
-        delivery_address: deliveryAddress,
-      })
+      .insert(orderRow)
       .select("*")
       .single();
-
-    if (basicErr || !basic) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: orderErr?.message || basicErr?.message || "Order create failed",
-          hint: "Run /cursor/stores/self/docs/supabase-checkout.sql then retry.",
-        },
-        { status: 400 },
-      );
+    if (!error && data) {
+      order = data as Record<string, unknown>;
+    } else {
+      const basic = await client
+        .from("orders")
+        .insert({
+          cart_id: cart.id,
+          status: "pending",
+          total_cents: totalCents,
+          currency: "USD",
+          delivery_address: deliveryAddress,
+        })
+        .select("*")
+        .single();
+      if (basic.error || !basic.data) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: error?.message || basic.error?.message || "Order create failed",
+            hint: "Run supabase-checkout.sql then supabase-payments.sql.",
+          },
+          { status: 400 },
+        );
+      }
+      order = basic.data as Record<string, unknown>;
+      orderHint =
+        "Order created with base columns; run supabase-payments.sql for payment_status.";
     }
+  }
+
+  const orderId = String(order.id);
+
+  if (wantStripe) {
+    const summary = resolved
+      .map((i) => `${i.name} ×${i.qty}`)
+      .join(", ");
+    const session = await createCheckoutSession({
+      orderId,
+      totalCents,
+      currency: "usd",
+      customerEmail: contactEmail,
+      lineSummary: summary || "DropZone delivery",
+      request,
+    });
+    if ("error" in session) {
+      return NextResponse.json({
+        ok: true,
+        order,
+        cartId: cart.id,
+        payment: {
+          mode: "demo",
+          status: "demo",
+          message: `Stripe session failed (${session.error}) — order saved; use demo pay or fix keys.`,
+        },
+        totals: {
+          subtotalCents,
+          deliveryFeeCents: feeCents,
+          totalCents,
+        },
+        hint: orderHint,
+        stripeMode,
+      });
+    }
+
+    await updateOrderPayment(orderId, {
+      payment_status: "pending",
+      stripe_checkout_session_id: session.sessionId,
+    });
 
     return NextResponse.json({
       ok: true,
-      order: basic,
+      order: { ...order, payment_status: "pending" },
       cartId: cart.id,
-      items: resolved,
+      payment: {
+        mode: "stripe",
+        status: "pending",
+        checkoutUrl: session.url,
+        sessionId: session.sessionId,
+      },
       totals: {
         subtotalCents,
         deliveryFeeCents: feeCents,
         totalCents,
       },
-      hint: "Order created with base columns; run supabase-checkout.sql for full fields.",
+      hint: orderHint,
+      stripeMode,
     });
   }
 
+  // Demo path — no charge
+  await updateOrderPayment(orderId, {
+    payment_status: "demo",
+    paid_at: new Date().toISOString(),
+  });
+
   return NextResponse.json({
     ok: true,
-    order,
+    order: { ...order, payment_status: "demo" },
     cartId: cart.id,
-    items: resolved,
+    payment: {
+      mode: "demo",
+      status: "demo",
+      message: stripeMode.message,
+    },
     totals: {
       subtotalCents,
       deliveryFeeCents: feeCents,
       totalCents,
     },
+    hint: orderHint,
+    stripeMode,
   });
 }
 
 export async function GET(request: Request) {
-  const id = new URL(request.url).searchParams.get("id");
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
   if (!id) {
     return NextResponse.json({
       ok: true,
-      usage: "POST { items, deliveryAddress, contactName?, sessionKey? }",
+      stripeMode: getStripeMode(),
+      usage: "POST { items, deliveryAddress, contactName?, contactEmail?, sessionKey?, payMode? }",
     });
   }
 
@@ -223,5 +324,5 @@ export async function GET(request: Request) {
   if (!data) {
     return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
   }
-  return NextResponse.json({ ok: true, order: data });
+  return NextResponse.json({ ok: true, order: data, stripeMode: getStripeMode() });
 }

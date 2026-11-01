@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { getStoredCustomerId } from "@/lib/customer-session-client";
+import { localRememberOrder } from "@/lib/customers-local";
 import { resolveProduct } from "@/lib/resolve-product";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
@@ -29,21 +31,37 @@ function sessionKey() {
 export function CheckoutView() {
   const { t } = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
   const [address, setAddress] = useState("");
   const [contact, setContact] = useState("");
+  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stripeMode, setStripeMode] = useState<{
+    mode: string;
+    configured: boolean;
+    message: string;
+  } | null>(null);
+  const canceled = searchParams.get("canceled") === "1";
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem("dz-cart");
       setLines(raw ? JSON.parse(raw) : []);
+      const savedAddr = localStorage.getItem("dz-checkout-address");
+      if (savedAddr) setAddress(savedAddr);
     } catch {
       setLines([]);
     }
     setReady(true);
+    fetch("/api/checkout")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.stripeMode) setStripeMode(j.stripeMode);
+      })
+      .catch(() => null);
   }, []);
 
   const items = useMemo(
@@ -79,20 +97,24 @@ export function CheckoutView() {
   if (vehicleId === "drone") delivery = 12.99;
   if (rushId === "rush") delivery += 10;
   const total = subtotal + delivery;
+  const stripeReady = Boolean(stripeMode?.configured);
 
-  async function placeOrder(e: React.FormEvent) {
-    e.preventDefault();
+  async function placeOrder(payMode: "stripe" | "demo") {
     if (!items.length) return;
     setBusy(true);
     setError(null);
     try {
+      const customerId = getStoredCustomerId();
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deliveryAddress: address,
           contactName: contact,
+          contactEmail: email || undefined,
+          customerId: customerId || undefined,
           sessionKey: sessionKey(),
+          payMode,
           items: items.map((i) => ({
             id: i.id,
             sku: i.sku,
@@ -112,7 +134,17 @@ export function CheckoutView() {
         setBusy(false);
         return;
       }
-      localStorage.removeItem("dz-cart");
+
+      if (json.stripeMode) setStripeMode(json.stripeMode);
+
+      if (customerId && json.order?.id) {
+        try {
+          localRememberOrder(customerId, json.order.id);
+        } catch {
+          /* ignore */
+        }
+      }
+
       localStorage.setItem(
         "dz-last-order",
         JSON.stringify({
@@ -121,13 +153,27 @@ export function CheckoutView() {
           totalCents: json.totals?.totalCents ?? Math.round(total * 100),
           vehicleId,
           rushId,
+          payment: json.payment,
         }),
       );
-      router.push(`/order/${json.order.id}`);
+
+      if (json.payment?.checkoutUrl) {
+        localStorage.removeItem("dz-cart");
+        window.location.href = json.payment.checkoutUrl;
+        return;
+      }
+
+      localStorage.removeItem("dz-cart");
+      router.push(`/order/${json.order.id}?demoPay=1`);
     } catch {
       setError(t.checkoutError);
       setBusy(false);
     }
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await placeOrder(stripeReady ? "stripe" : "demo");
   }
 
   if (!ready) return <p className="empty-state">{t.loadingCart}</p>;
@@ -144,9 +190,27 @@ export function CheckoutView() {
   }
 
   return (
-    <form className="checkout-form" onSubmit={placeOrder}>
+    <form className="checkout-form" onSubmit={onSubmit}>
       <h2 className="checkout-title">{t.checkoutTitle}</h2>
       <p className="checkout-lead">{t.checkoutLead}</p>
+
+      {!stripeReady ? (
+        <div className="pay-banner demo" role="status">
+          <strong>{t.payDemoBannerTitle}</strong>
+          <p>{t.payDemoBannerBody}</p>
+        </div>
+      ) : (
+        <div className="pay-banner live" role="status">
+          <strong>{t.payStripeReady}</strong>
+          <p>{t.payStripeReadyBody}</p>
+        </div>
+      )}
+
+      {canceled ? (
+        <p className="driver-note" role="status">
+          {t.payCanceled}
+        </p>
+      ) : null}
 
       <div className="checkout-lines">
         {items.map((item) => (
@@ -170,6 +234,16 @@ export function CheckoutView() {
           value={contact}
           onChange={(e) => setContact(e.target.value)}
           placeholder={t.checkoutContactPlaceholder}
+        />
+      </label>
+
+      <label className="driver-label">
+        {t.checkoutEmail}
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@email.com"
         />
       </label>
 
@@ -206,8 +280,25 @@ export function CheckoutView() {
       ) : null}
 
       <button type="submit" className="driver-submit" disabled={busy}>
-        {busy ? t.checkoutPlacing : t.checkoutPlaceOrder}
+        {busy
+          ? t.checkoutPlacing
+          : stripeReady
+            ? t.checkoutPayStripe
+            : t.checkoutPlaceDemo}
       </button>
+
+      {stripeReady ? (
+        <button
+          type="button"
+          className="driver-logout"
+          style={{ marginTop: 8 }}
+          disabled={busy}
+          onClick={() => placeOrder("demo")}
+        >
+          {t.checkoutPlaceDemoAlt}
+        </button>
+      ) : null}
+
       <Link href="/cart" className="driver-secondary-link">
         {t.checkoutBackToCart}
       </Link>

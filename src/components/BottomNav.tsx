@@ -11,8 +11,8 @@ export function BottomNav() {
   const items = [
     { href: "/", label: t.navHome, icon: "🏠" },
     { href: "/#search", label: t.navSearch, icon: "🔍" },
-    { href: "/cart", label: t.navOrders, icon: "📦" },
-    { href: "/pricing", label: t.navPricing, icon: "💲" },
+    { href: "/account/orders", label: t.navOrders, icon: "📦" },
+    { href: "/account", label: t.navAccount, icon: "👤" },
   ];
 
   return (

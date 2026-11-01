@@ -212,13 +212,13 @@ export function TrackingView() {
         <br />
         {driver?.vehicle_detail ||
           order.vehicle_id ||
-          t.vehicleDetail}
+          (driver ? t.vehicleDetail : t.trackWaitingDriver)}
         <br />
-        <span style={{ color: "var(--muted)", fontSize: 13 }}>
-          {driver?.license_plate
-            ? `${t.driverLicense}: ${driver.license_plate}`
-            : t.license}
-        </span>
+        {driver?.license_plate ? (
+          <span style={{ color: "var(--muted)", fontSize: 13 }}>
+            {t.driverLicense}: {driver.license_plate}
+          </span>
+        ) : null}
       </div>
 
       <div style={{ display: "flex", gap: 8, margin: "12px 0" }}>

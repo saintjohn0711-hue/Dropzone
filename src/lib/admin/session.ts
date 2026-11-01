@@ -24,9 +24,13 @@ function sessionSecret(): string {
   );
 }
 
-/** Soft signed token when admin_sessions table missing: soft.<email>.<exp>.<sig> */
+/** Soft signed token when admin_sessions table missing: soft.<base64url(json)>.<sig> */
 function mintSoftToken(email: string, expiresAtMs: number): string {
-  const payload = `soft.${email}.${expiresAtMs}`;
+  const body = Buffer.from(
+    JSON.stringify({ email, exp: expiresAtMs }),
+    "utf8",
+  ).toString("base64url");
+  const payload = `soft.${body}`;
   const sig = createHmac("sha256", sessionSecret())
     .update(payload)
     .digest("base64url");
@@ -36,17 +40,26 @@ function mintSoftToken(email: string, expiresAtMs: number): string {
 function parseSoftToken(token: string): { email: string; exp: number } | null {
   if (!token.startsWith("soft.")) return null;
   const parts = token.split(".");
-  if (parts.length !== 4) return null;
-  const email = parts[1];
-  const exp = Number(parts[2]);
-  const sig = parts[3];
-  if (!email || !Number.isFinite(exp) || exp < Date.now()) return null;
-  const payload = `soft.${email}.${exp}`;
+  // soft.<body>.<sig> — body is base64url (no dots)
+  if (parts.length !== 3) return null;
+  const body = parts[1];
+  const sig = parts[2];
+  const payload = `soft.${body}`;
   const expected = createHmac("sha256", sessionSecret())
     .update(payload)
     .digest("base64url");
   if (sig !== expected) return null;
-  return { email, exp };
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(body, "base64url").toString("utf8"),
+    ) as { email?: string; exp?: number };
+    if (!parsed.email || !Number.isFinite(parsed.exp) || (parsed.exp as number) < Date.now()) {
+      return null;
+    }
+    return { email: String(parsed.email).toLowerCase(), exp: parsed.exp as number };
+  } catch {
+    return null;
+  }
 }
 
 export function extractAdminToken(request: Request): string | null {

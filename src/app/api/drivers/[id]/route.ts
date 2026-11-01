@@ -5,7 +5,14 @@ import { getWriteClient, isMissingRelation } from "@/lib/supabase/write-client";
 
 export const runtime = "nodejs";
 
-const VEHICLES: VehicleType[] = ["car", "pickup", "box_truck", "drone"];
+const VEHICLES: VehicleType[] = [
+  "car",
+  "suv",
+  "pickup",
+  "van",
+  "box_truck",
+  "drone",
+];
 
 /** PATCH — update driver profile / active|inactive status */
 export async function PATCH(

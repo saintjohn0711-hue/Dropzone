@@ -18,11 +18,15 @@ export async function GET(request: Request, ctx: Ctx) {
     );
   }
 
+  const fullSelect =
+    "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, created_at, updated_at";
+  const midSelect =
+    "id, status, total_cents, currency, delivery_address, assigned_driver_id, payment_status, created_at, updated_at";
+  const coreSelect = "id, status, total_cents, currency, delivery_address, created_at, updated_at";
+
   const { data: order, error } = await client
     .from("orders")
-    .select(
-      "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, created_at, updated_at",
-    )
+    .select(fullSelect)
     .eq("id", id)
     .maybeSingle();
 
@@ -34,26 +38,35 @@ export async function GET(request: Request, ctx: Ctx) {
       isMissingRelation(error) ||
       error.message.toLowerCase().includes("column")
     ) {
-      const core = await client
+      const mid = await client
         .from("orders")
-        .select(
-          "id, status, total_cents, currency, delivery_address, contact_name, created_at, updated_at",
-        )
+        .select(midSelect)
         .eq("id", id)
         .maybeSingle();
-      if (core.error) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: core.error.message,
-            hint: "Run init / checkout SQL for orders",
-          },
-          { status: 503 },
-        );
+      if (!mid.error && mid.data) {
+        softOrder = mid.data as typeof order;
+        hint =
+          "Some order columns missing — run supabase-checkout.sql / supabase-dispatch.sql / supabase-tracking.sql";
+      } else {
+        const core = await client
+          .from("orders")
+          .select(coreSelect)
+          .eq("id", id)
+          .maybeSingle();
+        if (core.error) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: core.error.message,
+              hint: "Run init / checkout SQL for orders",
+            },
+            { status: 503 },
+          );
+        }
+        softOrder = core.data as typeof order;
+        hint =
+          "Minimal order row — run checkout + dispatch + tracking SQL for full live tracking";
       }
-      softOrder = core.data as typeof order;
-      hint =
-        "Some tracking columns missing — run supabase-dispatch.sql / supabase-tracking.sql";
     } else {
       return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
     }

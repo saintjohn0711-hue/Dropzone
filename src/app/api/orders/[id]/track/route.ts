@@ -8,6 +8,25 @@ export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+type TrackOrderRow = {
+  id: string;
+  status: string | null;
+  total_cents?: number | null;
+  currency?: string | null;
+  delivery_address?: string | null;
+  contact_name?: string | null;
+  vehicle_id?: string | null;
+  rush_id?: string | null;
+  payment_status?: string | null;
+  assigned_driver_id?: string | null;
+  assigned_at?: string | null;
+  driver_accepted_at?: string | null;
+  driver_started_at?: string | null;
+  driver_completed_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export async function GET(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const client = getWriteClient();
@@ -22,7 +41,8 @@ export async function GET(request: Request, ctx: Ctx) {
     "id, status, total_cents, currency, delivery_address, contact_name, vehicle_id, rush_id, payment_status, assigned_driver_id, assigned_at, driver_accepted_at, driver_started_at, driver_completed_at, created_at, updated_at";
   const midSelect =
     "id, status, total_cents, currency, delivery_address, assigned_driver_id, payment_status, created_at, updated_at";
-  const coreSelect = "id, status, total_cents, currency, delivery_address, created_at, updated_at";
+  const coreSelect =
+    "id, status, total_cents, currency, delivery_address, created_at, updated_at";
 
   const { data: order, error } = await client
     .from("orders")
@@ -30,7 +50,7 @@ export async function GET(request: Request, ctx: Ctx) {
     .eq("id", id)
     .maybeSingle();
 
-  let softOrder = order;
+  let softOrder = order as TrackOrderRow | null;
   let hint: string | undefined;
 
   if (error) {
@@ -44,7 +64,7 @@ export async function GET(request: Request, ctx: Ctx) {
         .eq("id", id)
         .maybeSingle();
       if (!mid.error && mid.data) {
-        softOrder = mid.data as typeof order;
+        softOrder = mid.data as TrackOrderRow;
         hint =
           "Some order columns missing — run supabase-checkout.sql / supabase-dispatch.sql / supabase-tracking.sql";
       } else {
@@ -63,7 +83,7 @@ export async function GET(request: Request, ctx: Ctx) {
             { status: 503 },
           );
         }
-        softOrder = core.data as typeof order;
+        softOrder = core.data as TrackOrderRow | null;
         hint =
           "Minimal order row — run checkout + dispatch + tracking SQL for full live tracking";
       }

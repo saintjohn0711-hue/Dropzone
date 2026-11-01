@@ -224,6 +224,8 @@ export function DriverDashboard() {
 
   function vehicleLabel(type: string) {
     if (type === "car") return t.vehicleCar;
+    if (type === "suv") return t.vehicleSuv;
+    if (type === "van") return t.vehicleVan;
     if (type === "pickup") return t.vehiclePickup;
     if (type === "box_truck") return t.vehicleBox;
     if (type === "drone") return t.vehicleDrone;
